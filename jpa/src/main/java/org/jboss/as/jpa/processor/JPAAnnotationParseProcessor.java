@@ -265,27 +265,31 @@ public class JPAAnnotationParseProcessor implements DeploymentUnitProcessor {
             throws DeploymentUnitProcessingException {
 
         String scopedPuName = getScopedPuName(deploymentUnit, annotation);
-        ServiceName puServiceName = getPuServiceName(scopedPuName);
-        if (isPersistenceContext(annotation)) {
-            AnnotationValue pcType = annotation.value("type");
-            PersistenceContextType type = (pcType == null || PersistenceContextType.TRANSACTION.name().equals(pcType.asString()))
-                    ? PersistenceContextType.TRANSACTION : PersistenceContextType.EXTENDED;
+        if (null != scopedPuName) {
+            ServiceName puServiceName = getPuServiceName(scopedPuName);
+            if (isPersistenceContext(annotation)) {
+                AnnotationValue pcType = annotation.value("type");
+                PersistenceContextType type = (pcType == null || PersistenceContextType.TRANSACTION.name().equals(pcType.asString()))
+                        ? PersistenceContextType.TRANSACTION : PersistenceContextType.EXTENDED;
 
-            Map properties;
-            AnnotationValue value = annotation.value("properties");
-            AnnotationInstance[] props = value != null ? value.asNestedArray() : null;
-            if (props != null) {
-                properties = new HashMap();
-                for (int source = 0; source < props.length; source++) {
-                    properties.put(props[source].value("name"), props[source].value("value"));
+                Map properties;
+                AnnotationValue value = annotation.value("properties");
+                AnnotationInstance[] props = value != null ? value.asNestedArray() : null;
+                if (props != null) {
+                    properties = new HashMap();
+                    for (int source = 0; source < props.length; source++) {
+                        properties.put(props[source].value("name"), props[source].value("value"));
+                    }
+                } else {
+                    properties = null;
                 }
-            } else {
-                properties = null;
-            }
 
-            return new PersistenceContextInjectionSource(type, properties, puServiceName, deploymentUnit, scopedPuName, injectionTypeName);
+                return new PersistenceContextInjectionSource(type, properties, puServiceName, deploymentUnit, scopedPuName, injectionTypeName);
+            } else {
+                return new PersistenceUnitInjectionSource(puServiceName, deploymentUnit, scopedPuName, injectionTypeName);
+            }
         } else {
-            return new PersistenceUnitInjectionSource(puServiceName, deploymentUnit, scopedPuName, injectionTypeName);
+            return new InvalidInjectionSource(annotation, deploymentUnit);
         }
     }
 
@@ -315,17 +319,12 @@ public class JPAAnnotationParseProcessor implements DeploymentUnitProcessor {
             throws DeploymentUnitProcessingException {
 
         final AnnotationValue puName = annotation.value("unitName");
-        String scopedPuName;
         String searchName = null;   // note:  a null searchName will match the first PU definition found
 
         if (puName != null) {
             searchName = puName.asString();
         }
-        scopedPuName = PersistenceUnitSearch.resolvePersistenceUnitSupplier(deploymentUnit, searchName);
-        if (null == scopedPuName) {
-            throw new DeploymentUnitProcessingException("Can't find a deployment unit named " + puName.asString() + " at " + deploymentUnit);
-        }
-        return scopedPuName;
+        return PersistenceUnitSearch.resolvePersistenceUnitSupplier(deploymentUnit, searchName);
     }
 
     private ServiceName getPuServiceName(String scopedPuName)

@@ -29,7 +29,7 @@ import java.io.InputStream;
 import javax.inject.Inject;
 import javax.management.MBeanServer;
 
-import org.jboss.arquillian.api.Deployment;
+import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.as.testsuite.integration.osgi.blueprint.bundle.BeanA;
 import org.jboss.as.testsuite.integration.osgi.blueprint.bundle.BeanB;
@@ -39,6 +39,7 @@ import org.jboss.osgi.testing.OSGiManifestBuilder;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.Asset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.osgi.framework.Bundle;
@@ -53,6 +54,7 @@ import org.osgi.service.blueprint.container.BlueprintContainer;
  * @since 12-Jul-2009
  */
 @RunWith(Arquillian.class)
+@Ignore("[AS7-734] Migrate to ARQ Beta1")
 public class BlueprintTestCase {
 
     @Inject
@@ -65,7 +67,7 @@ public class BlueprintTestCase {
     public static JavaArchive createdeployment() {
         final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "example-blueprint");
         archive.addClasses(BeanA.class, ServiceA.class, BeanB.class, ServiceB.class);
-        archive.addResource("osgi/blueprint/blueprint-example.xml", "OSGI-INF/blueprint/blueprint-example.xml");
+        archive.addAsResource("osgi/blueprint/blueprint-example.xml", "OSGI-INF/blueprint/blueprint-example.xml");
         archive.setManifest(new Asset() {
             public InputStream openStream() {
                 OSGiManifestBuilder builder = OSGiManifestBuilder.newInstance();

@@ -22,9 +22,10 @@
 
 package org.jboss.as.test.embedded.demos.ejb3.dd;
 
-import org.jboss.arquillian.api.Deployment;
-import org.jboss.arquillian.api.Run;
-import org.jboss.arquillian.api.RunModeType;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+
+import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
@@ -32,14 +33,10 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import javax.naming.Context;
-import javax.naming.InitialContext;
-
 /**
  * @author Jaikiran Pai
  */
 @RunWith(Arquillian.class)
-@Run(RunModeType.IN_CONTAINER)
 public class DDBasedEJBTestCase {
 
     private static final String MODULE_NAME = "dd-based-slsb";
@@ -50,8 +47,8 @@ public class DDBasedEJBTestCase {
     public static JavaArchive getDeployment() throws Exception {
         JavaArchive jar = ShrinkWrap.create(JavaArchive.class, JAR_NAME);
         jar.addPackage(DDBasedEJBTestCase.class.getPackage());
-        jar.addManifestResource("demos/ejb3/ejb-jar.xml", "ejb-jar.xml");
-        jar.addManifestResource("demos/ejb3/MANIFEST.MF", "MANIFEST.MF");
+        jar.addAsManifestResource("demos/ejb3/ejb-jar.xml", "ejb-jar.xml");
+        jar.addAsManifestResource("demos/ejb3/MANIFEST.MF", "MANIFEST.MF");
         return jar;
     }
 

@@ -21,22 +21,23 @@
  */
 package org.jboss.as.testsuite.integration.ejb.transaction.bmt;
 
-import org.jboss.arquillian.api.Deployment;
-import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.shrinkwrap.api.Archive;
-import org.jboss.shrinkwrap.api.ShrinkWrap;
-import org.jboss.shrinkwrap.api.asset.EmptyAsset;
-import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
 import javax.ejb.EJBException;
 import javax.inject.Inject;
 import javax.transaction.NotSupportedException;
 import javax.transaction.Status;
 import javax.transaction.SystemException;
 import javax.transaction.UserTransaction;
+
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.shrinkwrap.api.Archive;
+import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.asset.EmptyAsset;
+import org.jboss.shrinkwrap.api.spec.WebArchive;
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 
 /**
  * @author Stuart Douglas
@@ -61,7 +62,7 @@ public class BeanManagedTransactionsTestCase {
     public static Archive<?> deploy() {
         WebArchive war = ShrinkWrap.create(WebArchive.class, "test-mandatory.war");
         war.addPackage(BeanManagedTransactionsTestCase.class.getPackage());
-        war.addWebResource(EmptyAsset.INSTANCE, "beans.xml");
+        war.add(EmptyAsset.INSTANCE, "WEB-INF/beans.xml");
         return war;
     }
 

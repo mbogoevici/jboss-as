@@ -31,22 +31,22 @@ import javax.inject.Inject;
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServlet;
 
-import org.jboss.arquillian.api.Deployment;
+import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.as.testsuite.integration.osgi.webapp.bundle.EndpointServlet;
 import org.jboss.osgi.deployment.interceptor.LifecycleInterceptorException;
+import org.jboss.osgi.framework.Constants;
 import org.jboss.osgi.http.HttpServiceCapability;
 import org.jboss.osgi.testing.OSGiManifestBuilder;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.Asset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
-
-import aQute.lib.osgi.Constants;
 
 /**
  * A test that deployes a WAR bundle that contains no WEB-INF/web.xml
@@ -55,6 +55,7 @@ import aQute.lib.osgi.Constants;
  * @since 26-Oct-2009
  */
 @RunWith(Arquillian.class)
+@Ignore("[AS7-734] Migrate to ARQ Beta1")
 public class WebAppNegativeTestCase {
 
     @Inject
@@ -67,7 +68,7 @@ public class WebAppNegativeTestCase {
     public static WebArchive createdeployment() {
         final WebArchive archive = ShrinkWrap.create(WebArchive.class, "example-webapp-negative");
         archive.addClasses(EndpointServlet.class);
-        archive.addResource("osgi/webapp/message.txt", "message.txt");
+        archive.addAsResource("osgi/webapp/message.txt", "message.txt");
         // [SHRINKWRAP-278] WebArchive.setManifest() results in WEB-INF/classes/META-INF/MANIFEST.MF
         archive.add(new Asset() {
             public InputStream openStream() {

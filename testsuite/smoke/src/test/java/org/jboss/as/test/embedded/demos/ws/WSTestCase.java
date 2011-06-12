@@ -28,9 +28,8 @@ import javax.xml.ws.Service;
 
 import junit.framework.Assert;
 
-import org.jboss.arquillian.api.Deployment;
-import org.jboss.arquillian.api.Run;
-import org.jboss.arquillian.api.RunModeType;
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.as.demos.ws.archive.Endpoint;
 import org.jboss.as.demos.ws.archive.EndpointImpl;
@@ -38,6 +37,7 @@ import org.jboss.as.test.modular.utils.PollingUtils;
 import org.jboss.as.test.modular.utils.PollingUtils.UrlConnectionTask;
 import org.jboss.as.test.modular.utils.ShrinkWrapUtils;
 import org.jboss.shrinkwrap.api.Archive;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -47,10 +47,10 @@ import org.junit.runner.RunWith;
  * @version $Revision: 1.1 $
  */
 @RunWith(Arquillian.class)
-@Run(RunModeType.AS_CLIENT)
+@RunAsClient
 public class WSTestCase {
 
-    @Deployment
+    @Deployment(testable = false)
     public static Archive<?> getDeployment(){
         return ShrinkWrapUtils.createWebArchive("demos/ws-example.war", EndpointImpl.class.getPackage());
     }
@@ -63,6 +63,7 @@ public class WSTestCase {
     }
 
     @Test
+    @Ignore("[AS7-814] Fix or remove ignored smoke tests")
     public void testAccess() throws Exception {
         URL wsdlURL = new URL("http://localhost:8080/ws-example?wsdl");
         QName serviceName = new QName("http://archive.ws.demos.as.jboss.org/", "EndpointService");

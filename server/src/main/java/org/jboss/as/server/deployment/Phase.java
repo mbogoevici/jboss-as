@@ -174,13 +174,13 @@ public enum Phase {
     }
 
     // STRUCTURE
-    public static final int STRUCTURE_MOUNT                             = 0x0000;
+    public static final int STRUCTURE_WAR_DEPLOYMENT_INIT               = 0x0000;
+    public static final int STRUCTURE_MOUNT                             = 0x0001;
     public static final int STRUCTURE_MANIFEST                          = 0x0100;
     // must be before osgi
     public static final int STRUCTURE_JDBC_DRIVER                       = 0x0150;
     public static final int STRUCTURE_OSGI_MANIFEST                     = 0x0200;
     public static final int STRUCTURE_RAR                               = 0x0300;
-    public static final int STRUCTURE_WAR_DEPLOYMENT_INIT               = 0x0400;
     public static final int STRUCTURE_WAR                               = 0x0500;
     public static final int STRUCTURE_EAR_DEPLOYMENT_INIT               = 0x0600;
     public static final int STRUCTURE_EAR_APP_XML_PARSE                 = 0x0700;
@@ -198,7 +198,8 @@ public enum Phase {
 
     // PARSE
     public static final int PARSE_EE_MODULE_NAME                        = 0x0100;
-    public static final int PARSE_STRUCTURE_DESCRIPTOR                  = 0x0200;
+    public static final int PARSE_EAR_SUBDEPLOYMENTS_ISOLATION_DEFAULT  = 0x0200;
+    public static final int PARSE_STRUCTURE_DESCRIPTOR                  = 0x0201;
     public static final int PARSE_COMPOSITE_ANNOTATION_INDEX            = 0x0300;
     public static final int PARSE_EAR_LIB_CLASS_PATH                    = 0x0400;
     public static final int PARSE_ADDITIONAL_MODULES                    = 0x0500;
@@ -206,7 +207,8 @@ public enum Phase {
     public static final int PARSE_EXTENSION_LIST                        = 0x0700;
     public static final int PARSE_EXTENSION_NAME                        = 0x0800;
     public static final int PARSE_OSGI_BUNDLE_INFO                      = 0x0900;
-    public static final int PARSE_OSGI_PROPERTIES                       = 0x0A00;
+    public static final int PARSE_OSGI_XSERVICE_PROPERTIES              = 0x0A00;
+    public static final int PARSE_OSGI_DEPLOYMENT                       = 0x0A80;
     public static final int PARSE_WEB_DEPLOYMENT                        = 0x0B00;
     public static final int PARSE_WEB_DEPLOYMENT_FRAGMENT               = 0x0C00;
     public static final int PARSE_ANNOTATION_WAR                        = 0x0D00;
@@ -289,6 +291,9 @@ public enum Phase {
     // Sets up appropriate module dependencies for EJB deployments
     public static final int DEPENDENCIES_JPA                            = 0x1000;
     public static final int DEPENDENCIES_GLOBAL_MODULES                 = 0x1100;
+    public static final int DEPENDENCIES_JDK                            = 0x1200;
+    //must be last
+    public static final int DEPENDENCIES_MODULE_INFO_SERVICE            = 0x1300;
 
     // CONFIGURE_MODULE
     public static final int CONFIGURE_MODULE_SPEC                       = 0x0100;
@@ -328,6 +333,7 @@ public enum Phase {
     public static final int INSTALL_MODULE_CONTEXT                      = 0x0400;
     public static final int INSTALL_SERVICE_ACTIVATOR                   = 0x0500;
     public static final int INSTALL_OSGI_DEPLOYMENT                     = 0x0600;
+    public static final int INSTALL_OSGI_MODULE                         = 0x0650;
     public static final int INSTALL_WAR_METADATA                        = 0x0700; //this needs to be removed, however WSDeploymentActivator still uses it
     public static final int INSTALL_RA_DEPLOYMENT                       = 0x0800;
     public static final int INSTALL_SERVICE_DEPLOYMENT                  = 0x0900;

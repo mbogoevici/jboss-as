@@ -72,18 +72,19 @@ class DataSourcesSubsystemProviders {
             AttributeDefinition.DRIVER_CLASS, AttributeDefinition.JNDINAME, AttributeDefinition.DRIVER,
             AttributeDefinition.NEW_CONNECTION_SQL, AttributeDefinition.POOLNAME, AttributeDefinition.URL_DELIMITER,
             AttributeDefinition.URL_SELECTOR_STRATEGY_CLASS_NAME, AttributeDefinition.USE_JAVA_CONTEXT,
-            AttributeDefinition.ENABLED, AttributeDefinition.MAX_POOL_SIZE, AttributeDefinition.MIN_POOL_SIZE,
-            AttributeDefinition.POOL_PREFILL, AttributeDefinition.POOL_USE_STRICT_MIN, AttributeDefinition.USERNAME,
-            AttributeDefinition.PASSWORD, AttributeDefinition.PREPAREDSTATEMENTSCACHESIZE,
+            AttributeDefinition.ENABLED, AttributeDefinition.JTA, AttributeDefinition.MAX_POOL_SIZE,
+            AttributeDefinition.MIN_POOL_SIZE, AttributeDefinition.POOL_PREFILL, AttributeDefinition.POOL_USE_STRICT_MIN,
+            AttributeDefinition.USERNAME, AttributeDefinition.PASSWORD, AttributeDefinition.PREPAREDSTATEMENTSCACHESIZE,
             AttributeDefinition.SHAREPREPAREDSTATEMENTS, AttributeDefinition.TRACKSTATEMENTS,
             AttributeDefinition.ALLOCATION_RETRY, AttributeDefinition.ALLOCATION_RETRY_WAIT_MILLIS,
             AttributeDefinition.BLOCKING_TIMEOUT_WAIT_MILLIS, AttributeDefinition.IDLETIMEOUTMINUTES,
             AttributeDefinition.QUERYTIMEOUT, AttributeDefinition.USETRYLOCK, AttributeDefinition.SETTXQUERYTIMEOUT,
             AttributeDefinition.TRANSACTION_ISOLOATION, AttributeDefinition.CHECKVALIDCONNECTIONSQL,
-            AttributeDefinition.EXCEPTIONSORTERCLASSNAME, AttributeDefinition.STALECONNECTIONCHECKERCLASSNAME,
-            AttributeDefinition.VALIDCONNECTIONCHECKERCLASSNAME, AttributeDefinition.BACKGROUNDVALIDATIONMINUTES,
-            AttributeDefinition.BACKGROUNDVALIDATION, AttributeDefinition.USE_FAST_FAIL, AttributeDefinition.VALIDATEONMATCH,
-            AttributeDefinition.SPY };
+            AttributeDefinition.EXCEPTIONSORTERCLASSNAME, AttributeDefinition.EXCEPTIONSORTER_PROPERTIES,
+            AttributeDefinition.STALECONNECTIONCHECKERCLASSNAME, AttributeDefinition.STALECONNECTIONCHECKER_PROPERTIES,
+            AttributeDefinition.VALIDCONNECTIONCHECKERCLASSNAME, AttributeDefinition.VALIDCONNECTIONCHECKER_PROPERTIES,
+            AttributeDefinition.BACKGROUNDVALIDATIONMINUTES, AttributeDefinition.BACKGROUNDVALIDATION,
+            AttributeDefinition.USE_FAST_FAIL, AttributeDefinition.VALIDATEONMATCH, AttributeDefinition.SPY };
 
     static final AttributeDefinition[] XA_DATASOURCE_ATTRIBUTE = new AttributeDefinition[] {
             AttributeDefinition.XADATASOURCECLASS, AttributeDefinition.JNDINAME, AttributeDefinition.DRIVER,
@@ -99,10 +100,14 @@ class DataSourcesSubsystemProviders {
             AttributeDefinition.IDLETIMEOUTMINUTES, AttributeDefinition.QUERYTIMEOUT, AttributeDefinition.USETRYLOCK,
             AttributeDefinition.SETTXQUERYTIMEOUT, AttributeDefinition.TRANSACTION_ISOLOATION,
             AttributeDefinition.CHECKVALIDCONNECTIONSQL, AttributeDefinition.EXCEPTIONSORTERCLASSNAME,
-            AttributeDefinition.STALECONNECTIONCHECKERCLASSNAME, AttributeDefinition.VALIDCONNECTIONCHECKERCLASSNAME,
-            AttributeDefinition.BACKGROUNDVALIDATIONMINUTES, AttributeDefinition.BACKGROUNDVALIDATION,
-            AttributeDefinition.USE_FAST_FAIL, AttributeDefinition.VALIDATEONMATCH, AttributeDefinition.XA_RESOURCE_TIMEOUT,
-            AttributeDefinition.SPY };
+            AttributeDefinition.EXCEPTIONSORTER_PROPERTIES, AttributeDefinition.STALECONNECTIONCHECKERCLASSNAME,
+            AttributeDefinition.STALECONNECTIONCHECKER_PROPERTIES, AttributeDefinition.VALIDCONNECTIONCHECKERCLASSNAME,
+            AttributeDefinition.VALIDCONNECTIONCHECKER_PROPERTIES, AttributeDefinition.BACKGROUNDVALIDATIONMINUTES,
+            AttributeDefinition.BACKGROUNDVALIDATION, AttributeDefinition.USE_FAST_FAIL, AttributeDefinition.VALIDATEONMATCH,
+            AttributeDefinition.XA_RESOURCE_TIMEOUT, AttributeDefinition.SPY, AttributeDefinition.REAUTHPLUGIN_PROPERTIES,
+            AttributeDefinition.RECOVERY_USERNAME, AttributeDefinition.RECOVERY_PASSWORD,
+            AttributeDefinition.RECOVERY_SECURITY_DOMAIN, AttributeDefinition.RECOVERLUGIN_CLASSNAME,
+            AttributeDefinition.RECOVERLUGIN_PROPERTIES, AttributeDefinition.NO_RECOVERY };
 
     static final String RESOURCE_NAME = DataSourcesSubsystemProviders.class.getPackage().getName() + ".LocalDescriptions";
 

@@ -25,7 +25,6 @@ import static org.jboss.as.protocol.StreamUtils.safeClose;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;
-import java.lang.management.ManagementFactory;
 import java.net.URL;
 import java.net.URLConnection;
 
@@ -41,10 +40,10 @@ import javax.jms.TextMessage;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
-import org.jboss.arquillian.api.Deployment;
-import org.jboss.arquillian.api.Run;
-import org.jboss.arquillian.api.RunModeType;
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.as.arquillian.container.MBeanServerConnectionProvider;
 import org.jboss.as.demos.webapp.archive.SimpleServlet;
 import org.jboss.as.test.embedded.demos.fakejndi.FakeJndi;
 import org.jboss.as.test.modular.utils.ShrinkWrapUtils;
@@ -59,12 +58,11 @@ import org.junit.runner.RunWith;
  * @version $Revision: 1.1 $
  */
 @RunWith(Arquillian.class)
-@Run(RunModeType.AS_CLIENT)
-@Ignore("This test has never been run, awaiting fix either remote jndi or multiple @Deployment methods supported by " +
-		"Arquillian AND the same issues as org.jboss.as.test.embedded.demos.ds.DsTestCase")
+@RunAsClient
+@Ignore("[AS7-814] Fix or remove ignored smoke tests")
 public class WebAppTestCase {
 
-    @Deployment
+    @Deployment(testable = false)
     public static Archive<?> getDeployment(){
         //TODO - either deploy this separately once Arquillian (post Alpha4) supports multiple deployments
         //or wait until we have real remote jndi
@@ -135,7 +133,8 @@ public class WebAppTestCase {
     }
 
     private static <T> T lookup(String name, Class<T> expected) throws Exception {
-        MBeanServerConnection mbeanServer = ManagementFactory.getPlatformMBeanServer();
+        MBeanServerConnectionProvider provider = MBeanServerConnectionProvider.defaultProvider();
+        MBeanServerConnection mbeanServer = provider.getConnection();
         ObjectName objectName = new ObjectName("jboss:name=test,type=fakejndi");
         Object o = mbeanServer.invoke(objectName, "lookup", new Object[] {name}, new String[] {"java.lang.String"});
         return expected.cast(o);

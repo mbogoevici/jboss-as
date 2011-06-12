@@ -22,7 +22,12 @@
 
 package org.jboss.as.testsuite.integration.jpa.transaction;
 
-import org.jboss.arquillian.api.Deployment;
+import static org.junit.Assert.assertEquals;
+
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+
+import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -31,14 +36,6 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-import javax.persistence.TransactionRequiredException;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Transaction tests
@@ -78,8 +75,7 @@ public class TransactionTestCase {
             SFSB1.class
         );
 
-        jar.addResource(new StringAsset(persistence_xml), "META-INF/persistence.xml");
-        jar.addResource(new StringAsset(""), "META-INF/MANIFEST.MF");
+        jar.addAsResource(new StringAsset(persistence_xml), "META-INF/persistence.xml");
         return jar;
     }
 
@@ -115,7 +111,6 @@ public class TransactionTestCase {
 
     @Test
     public void testMultipleNonTXTransactionalEntityManagerInvocations() throws Exception {
-        Exception error = null;
         SFSB1 sfsb1 = lookup("SFSB1", SFSB1.class);
         sfsb1.getEmployeeNoTX(1);   // For each call in, we will use a transactional entity manager
                                     // that isn't running in an transaction.  So, a new underlying
@@ -126,10 +121,8 @@ public class TransactionTestCase {
 
     @Test
     public void testQueryNonTXTransactionalEntityManagerInvocations() throws Exception {
-        Exception error = null;
         SFSB1 sfsb1 = lookup("SFSB1", SFSB1.class);
         String name = sfsb1.queryEmployeeNameNoTX(1);
         assertEquals("Query should of thrown NoResultException, which we indicate by returning 'success'","success", name);
     }
-
 }

@@ -31,10 +31,10 @@ import org.jboss.shrinkwrap.api.Node;
 /**
  *
  * @author <a href="kabir.khan@jboss.com">Kabir Khan</a>
- * @version $Revision: 1.1 $
  */
-class ManifestUtils {
-    static Manifest getManifest(Archive<?> archive, boolean create) {
+public class ManifestUtils {
+
+    public static Manifest getManifest(Archive<?> archive, boolean create) {
         Manifest manifest = null;
         try {
             Node node = archive.get(JarFile.MANIFEST_NAME);
@@ -51,7 +51,7 @@ class ManifestUtils {
         }
     }
 
-    static Manifest getOrCreateManifest(Archive<?> archive) {
+    public static Manifest getOrCreateManifest(Archive<?> archive) {
         Manifest manifest;
         try {
             Node node = archive.get(JarFile.MANIFEST_NAME);

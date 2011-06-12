@@ -16,14 +16,6 @@
  */
 package org.jboss.as.arquillian.container;
 
-import org.jboss.arquillian.spi.ApplicationArchiveProcessor;
-import org.jboss.arquillian.spi.TestClass;
-import org.jboss.shrinkwrap.api.Archive;
-import org.jboss.shrinkwrap.api.ArchivePath;
-import org.jboss.shrinkwrap.api.ArchivePaths;
-import org.jboss.shrinkwrap.api.asset.Asset;
-import org.jboss.shrinkwrap.api.container.ManifestContainer;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -31,7 +23,17 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.jar.Attributes;
+import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+
+import org.jboss.arquillian.container.test.spi.client.deployment.ApplicationArchiveProcessor;
+import org.jboss.arquillian.test.spi.TestClass;
+import org.jboss.logging.Logger;
+import org.jboss.shrinkwrap.api.Archive;
+import org.jboss.shrinkwrap.api.ArchivePath;
+import org.jboss.shrinkwrap.api.ArchivePaths;
+import org.jboss.shrinkwrap.api.asset.Asset;
+import org.jboss.shrinkwrap.api.container.ManifestContainer;
 
 /**
  * An {@link ApplicationArchiveProcessor} for module test deployments.
@@ -42,18 +44,15 @@ import java.util.jar.Manifest;
  */
 public class ModuleApplicationArchiveProcessor implements ApplicationArchiveProcessor {
 
+    private static final Logger log = Logger.getLogger(ModuleApplicationArchiveProcessor.class);
+
     static final List<String> defaultDependencies = new ArrayList<String>();
     static {
-        defaultDependencies.add("org.jboss.arquillian.api");
-        defaultDependencies.add("org.jboss.arquillian.junit");
-        defaultDependencies.add("org.jboss.arquillian.protocol.jmx");
-        defaultDependencies.add("org.jboss.arquillian.spi");
+        defaultDependencies.add("deployment.arquillian-service");
         defaultDependencies.add("org.jboss.modules");
         defaultDependencies.add("org.jboss.msc");
-        defaultDependencies.add("org.jboss.shrinkwrap.api");
-        defaultDependencies.add("org.jboss.shrinkwrap.impl");
-        defaultDependencies.add("org.junit");
     }
+    /*
     static final List<String> jsfDependencies = new ArrayList<String>();
     static {
         jsfDependencies.add("org.jboss.jsfunit.arquillian");
@@ -73,6 +72,7 @@ public class ModuleApplicationArchiveProcessor implements ApplicationArchiveProc
         jsfDependencies.add("net.sourceforge.cssparser");
         jsfDependencies.add("net.sourceforge.nekohtml");
     }
+    */
 
     @Override
     public void process(Archive<?> appArchive, TestClass testClass) {
@@ -87,6 +87,7 @@ public class ModuleApplicationArchiveProcessor implements ApplicationArchiveProc
             if (moduleDeps.indexOf(dep) < 0)
                 moduleDeps.append("," + dep);
         }
+        /*
         if (Boolean.valueOf(System.getProperty("jboss.arquillian.jsfunit", "false"))) {
             for (String dep : jsfDependencies) {
                 if (moduleDeps.indexOf(dep) < 0) {
@@ -94,10 +95,13 @@ public class ModuleApplicationArchiveProcessor implements ApplicationArchiveProc
                 }
             }
         }
+        */
+        log.debugf("Add dependencies: %s", moduleDeps);
         attributes.putValue("Dependencies", moduleDeps.toString());
 
         // Add the manifest to the archive
-        ArchivePath path = ArchivePaths.create("META-INF", "MANIFEST.MF");
+        ArchivePath manifestPath = ArchivePaths.create(JarFile.MANIFEST_NAME);
+        appArchive.delete(manifestPath);
         appArchive.add(new Asset() {
                 public InputStream openStream() {
                     try {
@@ -108,6 +112,6 @@ public class ModuleApplicationArchiveProcessor implements ApplicationArchiveProc
                         throw new IllegalStateException("Cannot write manifest", ex);
                     }
                 }
-            }, path);
+            }, manifestPath);
     }
 }

@@ -21,16 +21,14 @@
  */
 package org.jboss.as.test.embedded.demos.sar;
 
-import java.lang.management.ManagementFactory;
-
 import javax.management.Attribute;
-import javax.management.MBeanServer;
+import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
-import org.jboss.arquillian.api.Deployment;
-import org.jboss.arquillian.api.Run;
-import org.jboss.arquillian.api.RunModeType;
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.as.arquillian.container.MBeanServerConnectionProvider;
 import org.jboss.as.demos.sar.archive.ConfigService;
 import org.jboss.as.test.modular.utils.PollingUtils;
 import org.jboss.as.test.modular.utils.ShrinkWrapUtils;
@@ -44,22 +42,21 @@ import org.junit.runner.RunWith;
  * @version $Revision: 1.1 $
  */
 @RunWith(Arquillian.class)
-@Run(RunModeType.AS_CLIENT)
+@RunAsClient
 public class SarTestCase {
 
-    @Deployment
+    @Deployment(testable = false)
     public static JavaArchive createDeployment() throws Exception {
         return ShrinkWrapUtils.createJavaArchive("demos/sar-example.sar", ConfigService.class.getPackage());
     }
 
     @Test
     public void testMBean() throws Exception {
-        MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
+        MBeanServerConnectionProvider provider = MBeanServerConnectionProvider.defaultProvider();
+        MBeanServerConnection mbeanServer = provider.getConnection();
         ObjectName objectName = new ObjectName("jboss:name=test,type=config");
-
         PollingUtils.retryWithTimeout(10000, new PollingUtils.WaitForMBeanTask(mbeanServer, objectName));
-
-        Object o = mbeanServer.getAttribute(objectName, "IntervalSeconds");
+        mbeanServer.getAttribute(objectName, "IntervalSeconds");
         mbeanServer.setAttribute(objectName, new Attribute("IntervalSeconds", 2));
     }
 

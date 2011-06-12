@@ -21,16 +21,10 @@
  */
 package org.jboss.as.testsuite.integration.weldejb;
 
-import org.jboss.arquillian.api.Deployment;
-import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.as.testsuite.integration.common.HttpRequest;
-import org.jboss.shrinkwrap.api.ShrinkWrap;
-import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.jboss.stdio.WriterOutputStream;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import javax.ejb.ConcurrentAccessException;
 import java.beans.XMLDecoder;
 import java.io.StringBufferInputStream;
 import java.net.MalformedURLException;
@@ -38,9 +32,16 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import javax.ejb.ConcurrentAccessException;
+
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.as.testsuite.integration.common.HttpRequest;
+import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.spec.WebArchive;
+import org.jboss.stdio.WriterOutputStream;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 
 /**
  * Test two things:
@@ -57,8 +58,8 @@ public class SessionObjectReferenceTestCase {
     public static WebArchive deployment() {
         WebArchive war = ShrinkWrap.create(WebArchive.class, "war-example.war")
             .addClasses(HttpRequest.class, SimpleServlet.class, SimpleStatefulSessionBean.class, WriterOutputStream.class)
-            .addWebResource(SessionObjectReferenceTestCase.class.getPackage().getName() + "/beans.xml")
-            .addWebResource(SessionObjectReferenceTestCase.class.getPackage().getName() + "/web.xml")
+            .addAsWebInfResource(SessionObjectReferenceTestCase.class.getPackage().getName() + "/beans.xml")
+            .addAsWebInfResource(SessionObjectReferenceTestCase.class.getPackage().getName() + "/web.xml")
             ;
         return war;
     }

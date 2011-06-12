@@ -23,25 +23,18 @@
 package org.jboss.as.test.embedded.configadmin;
 
 import java.util.Dictionary;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
-import org.jboss.as.osgi.service.ConfigAdminServiceImpl;
+import org.jboss.as.osgi.service.ConfigAdminService;
 import org.jboss.msc.service.AbstractService;
-import org.jboss.msc.service.AbstractServiceListener;
 import org.jboss.msc.service.ServiceBuilder;
-import org.jboss.msc.service.ServiceController;
-import org.jboss.msc.service.ServiceController.State;
 import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.service.ServiceTarget;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.value.InjectedValue;
 
 /**
- * A simple service that reads its configuration from the {@link ConfigAdminServiceImpl}
+ * A simple service that reads its configuration from the {@link ConfigAdminService}
  *
  * @author Thomas.Diesler@jboss.org
  * @since 12-Dec-2010
@@ -51,49 +44,14 @@ public class ConfiguredService extends AbstractService<ConfiguredService> {
     public static ServiceName SERVICE_NAME = ServiceName.JBOSS.append("test", "smoke", "configadmin");
     public static String SERVICE_PID = "org.jboss.as.test.embedded.configadmin";
 
-    private final InjectedValue<ConfigAdminServiceImpl> injectedConfigAdmin = new InjectedValue<ConfigAdminServiceImpl>();
+    private final InjectedValue<ConfigAdminService> injectedConfigAdmin = new InjectedValue<ConfigAdminService>();
     private Dictionary<String, String> config;
 
     public static void addService(ServiceTarget serviceTarget) {
         ConfiguredService service = new ConfiguredService();
         ServiceBuilder<ConfiguredService> serviceBuilder = serviceTarget.addService(SERVICE_NAME, service);
-        serviceBuilder.addDependency(ConfigAdminServiceImpl.SERVICE_NAME, ConfigAdminServiceImpl.class, service.injectedConfigAdmin);
+        serviceBuilder.addDependency(ConfigAdminService.SERVICE_NAME, ConfigAdminService.class, service.injectedConfigAdmin);
         serviceBuilder.install();
-    }
-
-    @SuppressWarnings("unchecked")
-    public static ConfiguredService await(ServiceRegistry registry, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException {
-
-        final CountDownLatch latch = new CountDownLatch(1);
-        ServiceController<ConfiguredService> controller = (ServiceController<ConfiguredService>) registry.getService(ConfiguredService.SERVICE_NAME);
-        controller.addListener(new AbstractServiceListener<ConfiguredService>() {
-
-            @Override
-            public void listenerAdded(ServiceController<? extends ConfiguredService> controller) {
-                State state = controller.getState();
-                if (state == State.UP || state == State.START_FAILED)
-                    done(controller, controller.getStartException());
-            }
-
-            @Override
-            public void serviceStarted(ServiceController<? extends ConfiguredService> controller) {
-                done(controller, null);
-            }
-
-            @Override
-            public void serviceFailed(ServiceController<? extends ConfiguredService> controller, StartException reason) {
-                done(controller, reason);
-            }
-
-            private void done(ServiceController<? extends ConfiguredService> controller, StartException startException) {
-                controller.removeListener(this);
-                latch.countDown();
-            }
-        });
-        if (latch.await(5, TimeUnit.SECONDS) == false)
-            throw new TimeoutException();
-
-        return controller.getValue();
     }
 
     @Override

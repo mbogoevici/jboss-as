@@ -33,7 +33,6 @@ import java.util.List;
  * Information used to build a module.
  *
  * @author Stuart Douglas
- *
  */
 public class ModuleSpecification extends SimpleAttachable {
 
@@ -43,14 +42,20 @@ public class ModuleSpecification extends SimpleAttachable {
     private Boolean childFirst;
 
     /**
-     * Flag that is set to true if non private sub deployments should be able to see each other
+     * Flag that is set to true if modules of non private sub deployments should be able to see each other
      */
-    private boolean extendedClassVisibility;
+    private boolean subDeploymentModulesIsolated;
 
     /**
      * Flag that indicates that this module should never be visible to other sub deployments
      */
     private boolean privateModule;
+
+    /**
+     * If set to true this indicates that a dependency on this module requires a dependency on all it's transitive
+     * dependencies.
+     */
+    private boolean requiresTransitiveDependencies;
 
     public Boolean getChildFirst() {
         return childFirst;
@@ -80,12 +85,12 @@ public class ModuleSpecification extends SimpleAttachable {
         return Collections.unmodifiableList(resourceLoaders);
     }
 
-    public boolean isExtendedClassVisibility() {
-        return extendedClassVisibility;
+    public boolean isSubDeploymentModulesIsolated() {
+        return subDeploymentModulesIsolated;
     }
 
-    public void setExtendedClassVisibility(boolean extendedClassVisibility) {
-        this.extendedClassVisibility = extendedClassVisibility;
+    public void setSubDeploymentModulesIsolated(boolean subDeploymentModulesIsolated) {
+        this.subDeploymentModulesIsolated = subDeploymentModulesIsolated;
     }
 
     public boolean isPrivateModule() {
@@ -95,4 +100,13 @@ public class ModuleSpecification extends SimpleAttachable {
     public void setPrivateModule(boolean privateModule) {
         this.privateModule = privateModule;
     }
+
+    public boolean isRequiresTransitiveDependencies() {
+        return requiresTransitiveDependencies;
+    }
+
+    public void setRequiresTransitiveDependencies(final boolean requiresTransitiveDependencies) {
+        this.requiresTransitiveDependencies = requiresTransitiveDependencies;
+    }
+
 }

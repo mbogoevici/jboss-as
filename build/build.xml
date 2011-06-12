@@ -78,10 +78,6 @@
             <maven-resource group="asm" artifact="asm" />
         </module-def>
 
-        <module-def name="net.sf.cglib">
-            <maven-resource group="cglib" artifact="cglib" />
-        </module-def>
-
         <module-def name="ch.qos.cal10n">
             <maven-resource group="ch.qos.cal10n" artifact="cal10n-api"/>
         </module-def>
@@ -94,9 +90,13 @@
             <maven-resource group="com.h2database" artifact="h2"/>
         </module-def>
 
+        <module-def name="com.sun.jndi.ldap" />
+
         <module-def name="com.sun.jsf-impl">
             <maven-resource group="com.sun.faces" artifact="jsf-impl"/>
         </module-def>
+
+        <module-def name="com.sun.security" />
 
         <module-def name="com.sun.xml.bind">
             <maven-resource group="com.sun.xml.bind" artifact="jaxb-impl"/>
@@ -389,6 +389,10 @@
             <maven-resource group="org.hornetq" artifact="hornetq-jms"/>
         </module-def>
 
+        <module-def name="org.hornetq.ra">
+            <maven-resource group="org.hornetq" artifact="hornetq-ra"/>
+        </module-def>
+
         <module-def name="org.infinispan">
             <maven-resource group="org.infinispan" artifact="infinispan-core"/>
         </module-def>
@@ -397,68 +401,8 @@
             <maven-resource group="javassist" artifact="javassist"/>
         </module-def>
 
-        <module-def name="org.jboss.arquillian.api">
-            <maven-resource group="org.jboss.arquillian" artifact="arquillian-api"/>
-        </module-def>
-
-        <module-def name="org.jboss.arquillian.impl">
-            <maven-resource group="org.jboss.arquillian" artifact="arquillian-impl-base"/>
-        </module-def>
-
-        <module-def name="org.jboss.arquillian.junit">
-            <maven-resource group="org.jboss.arquillian" artifact="arquillian-junit"/>
-        </module-def>
-
-        <module-def name="org.jboss.arquillian.protocol.jmx">
-            <maven-resource group="org.jboss.arquillian.protocol" artifact="arquillian-protocol-jmx"/>
-        </module-def>
-
-        <module-def name="org.jboss.arquillian.protocol.osgi">
-            <maven-resource group="org.jboss.arquillian.protocol" artifact="arquillian-protocol-osgi"/>
-        </module-def>
-
-        <module-def name="org.jboss.arquillian.spi">
-            <maven-resource group="org.jboss.arquillian" artifact="arquillian-spi"/>
-        </module-def>
-
-        <module-def name="org.jboss.arquillian.testenricher.cdi">
-            <maven-resource group="org.jboss.arquillian.testenricher" artifact="arquillian-testenricher-cdi"/>
-            <maven-resource group="org.jboss.as" artifact="jboss-as-arquillian-testenricher-cdi"/>
-        </module-def>
-
-        <module-def name="org.jboss.arquillian.testenricher.jmx">
-            <maven-resource group="org.jboss.arquillian.testenricher" artifact="arquillian-testenricher-jmx"/>
-        </module-def>
-
-        <module-def name="org.jboss.arquillian.testenricher.msc">
-            <maven-resource group="org.jboss.arquillian.testenricher" artifact="arquillian-testenricher-msc"/>
-        </module-def>
-
-        <module-def name="org.jboss.arquillian.testenricher.osgi">
-            <maven-resource group="org.jboss.arquillian.testenricher" artifact="arquillian-testenricher-osgi"/>
-        </module-def>
-
-        <module-def name="org.jboss.arquillian.testenricher.resource">
-            <maven-resource group="org.jboss.arquillian.testenricher" artifact="arquillian-testenricher-resource"/>
-            <maven-resource group="org.jboss.as" artifact="jboss-as-arquillian-testenricher-resource"/>
-        </module-def>
-
         <module-def name="org.jboss.as.aggregate" />
-
-        <module-def name="org.jboss.as.arquillian.aggregate"/>
-
-        <module-def name="org.jboss.as.arquillian.common">
-            <maven-resource group="org.jboss.as" artifact="jboss-as-arquillian-common"/>
-        </module-def>
-
-        <module-def name="org.jboss.as.arquillian.protocol.servlet">
-            <maven-resource group="org.jboss.as" artifact="jboss-as-arquillian-protocol-servlet"/>
-        </module-def>
-
-        <module-def name="org.jboss.as.arquillian.service">
-            <maven-resource group="org.jboss.as" artifact="jboss-as-arquillian-service"/>
-        </module-def>
-
+    	
         <module-def name="org.jboss.as.cli">
             <maven-resource group="org.jboss.as" artifact="jboss-as-cli"/>
         </module-def>
@@ -691,16 +635,8 @@
             <maven-resource group="jboss.jaxbintros" artifact="jboss-jaxb-intros"/>
         </module-def>
 
-        <module-def name="org.jboss.jsfunit.arquillian">
-            <maven-resource group="org.jboss.jsfunit" artifact="jsfunit-arquillian"/>
-        </module-def>
-
         <module-def name="org.jboss.jsfunit.core">
             <maven-resource group="org.jboss.jsfunit" artifact="jboss-jsfunit-core"/>
-        </module-def>
-
-        <module-def name="org.jboss.jsfunit.jsfunit-arquillian-processor">
-            <maven-resource group="org.jboss.as" artifact="jboss-as-arquillian-processor-jsfunit"/>
         </module-def>
 
         <module-def name="org.jboss.jts">
@@ -808,21 +744,15 @@
             <maven-resource group="org.jboss.resteasy" artifact="resteasy-multipart-provider" jandex="true"/>
         </module-def>
 
-        <module-def name="org.jboss.shrinkwrap.api">
+        <module-def name="org.jboss.security.negotiation">
+            <maven-resource group="org.jboss.security" artifact="jboss-negotiation"/>
+        </module-def>
+
+        <module-def name="org.jboss.shrinkwrap.core">
             <maven-resource group="org.jboss.shrinkwrap" artifact="shrinkwrap-api"/>
-        </module-def>
-
-        <module-def name="org.jboss.shrinkwrap.spi">
             <maven-resource group="org.jboss.shrinkwrap" artifact="shrinkwrap-spi"/>
-        </module-def>
-
-        <module-def name="org.jboss.shrinkwrap.impl">
             <maven-resource group="org.jboss.shrinkwrap" artifact="shrinkwrap-impl-base"/>
         </module-def>
-
-        <module-def name="org.jboss.surefire.arquillian-deps"/>
-
-        <module-def name="org.jboss.surefire.arquillian-jsfunit-deps"/>
 
         <module-def name="org.jboss.staxmapper">
             <maven-resource group="org.jboss" artifact="staxmapper"/>
@@ -894,6 +824,9 @@
             <maven-resource group="org.jboss.ws" artifact="jbossws-common-tools"/>
         </module-def>
 
+        <module-def name="org.jboss.ws.saaj-impl">
+        </module-def>
+
         <module-def name="org.jboss.ws.tools.wsprovide">
         </module-def>
 
@@ -948,6 +881,9 @@
         <module-def name="javax.wsdl4j.api">
             <maven-resource group="wsdl4j" artifact="wsdl4j"/>
         </module-def>
+
+        <module-def name="sun.jdk"/>
+
     </target>
 
     <target name="bundles">

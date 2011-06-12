@@ -28,7 +28,7 @@ import java.io.InputStream;
 import javax.inject.Inject;
 import javax.management.MBeanServer;
 
-import org.jboss.arquillian.api.Deployment;
+import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.as.testsuite.integration.osgi.jmx.bundle.Foo;
 import org.jboss.as.testsuite.integration.osgi.jmx.bundle.FooMBean;
@@ -38,6 +38,7 @@ import org.jboss.osgi.testing.OSGiManifestBuilder;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.Asset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.osgi.framework.Bundle;
@@ -53,6 +54,7 @@ import org.osgi.util.tracker.ServiceTracker;
  * @since 12-Feb-2009
  */
 @RunWith(Arquillian.class)
+@Ignore("[AS7-734] Migrate to ARQ Beta1")
 public class MBeanServerTestCase {
 
     @Inject

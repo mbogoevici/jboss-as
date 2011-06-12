@@ -52,6 +52,7 @@ import static org.jboss.as.connector.subsystems.datasources.Constants.FLUSH_STRA
 import static org.jboss.as.connector.subsystems.datasources.Constants.INTERLIVING;
 import static org.jboss.as.connector.subsystems.datasources.Constants.JDBC_DRIVER;
 import static org.jboss.as.connector.subsystems.datasources.Constants.JNDINAME;
+import static org.jboss.as.connector.subsystems.datasources.Constants.JTA;
 import static org.jboss.as.connector.subsystems.datasources.Constants.NEW_CONNECTION_SQL;
 import static org.jboss.as.connector.subsystems.datasources.Constants.NOTXSEPARATEPOOL;
 import static org.jboss.as.connector.subsystems.datasources.Constants.PAD_XID;
@@ -73,7 +74,7 @@ import static org.jboss.as.connector.subsystems.datasources.Constants.USERNAME;
 import static org.jboss.as.connector.subsystems.datasources.Constants.USETRYLOCK;
 import static org.jboss.as.connector.subsystems.datasources.Constants.USE_JAVA_CONTEXT;
 import static org.jboss.as.connector.subsystems.datasources.Constants.VALIDATEONMATCH;
-import static org.jboss.as.connector.subsystems.datasources.Constants.VALIDCONNECTIONCHECKERCLASSNAME;
+import static org.jboss.as.connector.subsystems.datasources.Constants.*;
 import static org.jboss.as.connector.subsystems.datasources.Constants.WRAP_XA_DATASOURCE;
 import static org.jboss.as.connector.subsystems.datasources.Constants.XADATASOURCECLASS;
 import static org.jboss.as.connector.subsystems.datasources.Constants.XADATASOURCEPROPERTIES;
@@ -148,6 +149,8 @@ import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.Property;
 import org.jboss.jca.common.api.metadata.common.CommonPool;
 import org.jboss.jca.common.api.metadata.common.CommonXaPool;
+import org.jboss.jca.common.api.metadata.common.Credential;
+import org.jboss.jca.common.api.metadata.common.Recovery;
 import org.jboss.jca.common.api.metadata.ds.DataSource;
 import org.jboss.jca.common.api.metadata.ds.DataSources;
 import org.jboss.jca.common.api.metadata.ds.Driver;
@@ -157,6 +160,7 @@ import org.jboss.jca.common.api.metadata.ds.TimeOut;
 import org.jboss.jca.common.api.metadata.ds.Validation;
 import org.jboss.jca.common.api.metadata.ds.XaDataSource;
 import org.jboss.jca.common.metadata.ds.DsParser;
+import org.jboss.jca.core.spi.recovery.RecoveryPlugin;
 import org.jboss.logging.Logger;
 import org.jboss.staxmapper.XMLElementReader;
 import org.jboss.staxmapper.XMLElementWriter;
@@ -201,7 +205,7 @@ public class DataSourcesExtension implements Extension {
                 DATA_SOURCE_DESC);
         dataSources.registerOperationHandler(ADD, DataSourceAdd.INSTANCE, ADD_DATA_SOURCE_DESC, false);
         dataSources.registerOperationHandler(REMOVE, DataSourceRemove.INSTANCE, REMOVE_DATA_SOURCE_DESC, false);
-        dataSources.registerOperationHandler(ENABLE, DataSourceEnable.INSTANCE, ENABLE_DATA_SOURCE_DESC, false);
+        dataSources.registerOperationHandler(ENABLE, DataSourceEnable.LOCAL_INSTANCE, ENABLE_DATA_SOURCE_DESC, false);
         dataSources.registerOperationHandler(DISABLE, DataSourceDisable.INSTANCE, DISABLE_DATA_SOURCE_DESC, false);
         dataSources.registerOperationHandler("flush-idle-connection-in-pool",
                 PoolOperations.FlushIdleConnectionInPool.DS_INSTANCE, FLUSH_IDLE_CONNECTION_DESC, false);
@@ -229,7 +233,7 @@ public class DataSourcesExtension implements Extension {
                 XA_DATA_SOURCE_DESC);
         xaDataSources.registerOperationHandler(ADD, XaDataSourceAdd.INSTANCE, ADD_XA_DATA_SOURCE_DESC, false);
         xaDataSources.registerOperationHandler(REMOVE, XaDataSourceRemove.INSTANCE, REMOVE_XA_DATA_SOURCE_DESC, false);
-        xaDataSources.registerOperationHandler(ENABLE, DataSourceEnable.INSTANCE, ENABLE_XA_DATA_SOURCE_DESC, false);
+        xaDataSources.registerOperationHandler(ENABLE, DataSourceEnable.XA_INSTANCE, ENABLE_XA_DATA_SOURCE_DESC, false);
         xaDataSources.registerOperationHandler(DISABLE, DataSourceDisable.INSTANCE, DISABLE_XA_DATA_SOURCE_DESC, false);
         xaDataSources.registerOperationHandler("flush-idle-connection-in-pool",
                 PoolOperations.FlushIdleConnectionInPool.DS_INSTANCE, FLUSH_IDLE_CONNECTION_DESC, false);
@@ -287,20 +291,10 @@ public class DataSourcesExtension implements Extension {
                     writer.writeStartElement(isXADataSource ? DataSources.Tag.XA_DATASOURCE.getLocalName()
                             : DataSources.Tag.DATASOURCE.getLocalName());
 
-                    if (dataSourceNode.hasDefined(CONNECTION_PROPERTIES)) {
-                        for (Property prop : dataSourceNode.get(CONNECTION_PROPERTIES).asPropertyList()) {
-                            writer.writeStartElement(DataSource.Tag.CONNECTIONPROPERTY.getLocalName());
-                            writer.writeAttribute("name", prop.getName());
-                            writer.writeCharacters(prop.getValue().asString());
-                            writer.writeEndElement();
-
-                        }
-
-                    }
-
                     writeAttributeIfHas(writer, dataSourceNode, DataSource.Attribute.JNDINAME, JNDINAME);
                     writeAttributeIfHas(writer, dataSourceNode, DataSource.Attribute.POOL_NAME, POOLNAME);
                     writeAttributeIfHas(writer, dataSourceNode, DataSource.Attribute.ENABLED, ENABLED);
+                    writeAttributeIfHas(writer, dataSourceNode, DataSource.Attribute.JTA, JTA);
                     writeAttributeIfHas(writer, dataSourceNode, DataSource.Attribute.USEJAVACONTEXT, USE_JAVA_CONTEXT);
                     writeAttributeIfHas(writer, dataSourceNode, DataSource.Attribute.SPY, SPY);
 
@@ -309,8 +303,8 @@ public class DataSourcesExtension implements Extension {
                         writeElementIfHas(writer, dataSourceNode, DataSource.Tag.DRIVERCLASS, DATASOURCE_DRIVER_CLASS);
                         if (dataSourceNode.hasDefined(CONNECTION_PROPERTIES)) {
                             for (Property connectionProperty : dataSourceNode.get(CONNECTION_PROPERTIES).asPropertyList()) {
-                                writeConnectionProperty(writer, dataSourceNode, connectionProperty.getName(),
-                                        connectionProperty.getValue().asString());
+                                writeProperty(writer, dataSourceNode, connectionProperty.getName(), connectionProperty
+                                        .getValue().asString(), DataSource.Tag.CONNECTIONPROPERTY.getLocalName());
                             }
                         }
                     }
@@ -376,8 +370,50 @@ public class DataSourcesExtension implements Extension {
                         writeElementIfHas(writer, dataSourceNode, DsSecurity.Tag.PASSWORD, PASSWORD);
                         writeElementIfHas(writer, dataSourceNode, DsSecurity.Tag.SECURITY_DOMAIN, SECURITY_DOMAIN);
 
+                        if (dataSourceNode.hasDefined(REAUTHPLUGIN_CLASSNAME)) {
+                            writeElementIfHas(writer, dataSourceNode, DsSecurity.Tag.REAUTH_PLUGIN.getLocalName(),
+                                    REAUTHPLUGIN_CLASSNAME);
+                            if (dataSourceNode.hasDefined(REAUTHPLUGIN_PROPERTIES)) {
+                                for (Property connectionProperty : dataSourceNode.get(REAUTHPLUGIN_PROPERTIES).asPropertyList()) {
+                                    writeProperty(writer, dataSourceNode, connectionProperty.getName(), connectionProperty
+                                            .getValue().asString(),
+                                            org.jboss.jca.common.api.metadata.common.Extension.Tag.CONFIG_PROPERTY
+                                                    .getLocalName());
+                                }
+                            }
+                        }
                         writer.writeEndElement();
                     }
+
+                    boolean recoveryRequired = hasAnyOf(dataSourceNode, RECOVERY_USERNAME, RECOVERY_PASSWORD,
+                            RECOVERY_SECURITY_DOMAIN, RECOVERLUGIN_CLASSNAME, NO_RECOVERY);
+                    if (recoveryRequired) {
+                        writer.writeStartElement(XaDataSource.Tag.RECOVERY.getLocalName());
+                        writeAttributeIfHas(writer, dataSourceNode, Recovery.Attribute.NO_RECOVERY, NO_RECOVERY);
+                        if (hasAnyOf(dataSourceNode, RECOVERY_USERNAME, RECOVERY_PASSWORD, RECOVERY_SECURITY_DOMAIN)) {
+                            writer.writeStartElement(Recovery.Tag.RECOVER_CREDENTIAL.getLocalName());
+                            writeElementIfHas(writer, dataSourceNode, Credential.Tag.USERNAME.getLocalName(), RECOVERY_USERNAME);
+                            writeElementIfHas(writer, dataSourceNode, Credential.Tag.PASSWORD.getLocalName(), RECOVERY_PASSWORD);
+                            writeElementIfHas(writer, dataSourceNode, Credential.Tag.SECURITY_DOMAIN.getLocalName(),
+                                    RECOVERY_SECURITY_DOMAIN);
+                            writer.writeEndElement();
+                        }
+                        if (hasAnyOf(dataSourceNode, RECOVERLUGIN_CLASSNAME)) {
+                            writeElementIfHas(writer, dataSourceNode, Recovery.Tag.RECOVER_PLUGIN.getLocalName(),
+                                    RECOVERLUGIN_CLASSNAME);
+                            if (dataSourceNode.hasDefined(RECOVERLUGIN_PROPERTIES)) {
+                                for (Property connectionProperty : dataSourceNode.get(RECOVERLUGIN_PROPERTIES).asPropertyList()) {
+                                    writeProperty(writer, dataSourceNode, connectionProperty.getName(), connectionProperty
+                                            .getValue().asString(),
+                                            org.jboss.jca.common.api.metadata.common.Extension.Tag.CONFIG_PROPERTY
+                                                    .getLocalName());
+                                }
+                            }
+
+                        }
+                        writer.writeEndElement();
+                    }
+
                     boolean validationRequired = hasAnyOf(dataSourceNode, VALIDCONNECTIONCHECKERCLASSNAME,
                             CHECKVALIDCONNECTIONSQL, VALIDATEONMATCH, BACKGROUNDVALIDATION, BACKGROUNDVALIDATIONMINUTES,
                             USE_FAST_FAIL, STALECONNECTIONCHECKERCLASSNAME, EXCEPTIONSORTERCLASSNAME);
@@ -385,6 +421,14 @@ public class DataSourcesExtension implements Extension {
                         writer.writeStartElement(DataSource.Tag.VALIDATION.getLocalName());
                         writeElementIfHas(writer, dataSourceNode, Validation.Tag.VALIDCONNECTIONCHECKER,
                                 VALIDCONNECTIONCHECKERCLASSNAME);
+                        if (dataSourceNode.hasDefined(VALIDCONNECTIONCHECKER_PROPERTIES)) {
+                            for (Property connectionProperty : dataSourceNode.get(VALIDCONNECTIONCHECKER_PROPERTIES)
+                                    .asPropertyList()) {
+                                writeProperty(writer, dataSourceNode, connectionProperty.getName(), connectionProperty
+                                        .getValue().asString(),
+                                        org.jboss.jca.common.api.metadata.common.Extension.Tag.CONFIG_PROPERTY.getLocalName());
+                            }
+                        }
                         writeElementIfHas(writer, dataSourceNode, Validation.Tag.CHECKVALIDCONNECTIONSQL,
                                 CHECKVALIDCONNECTIONSQL);
                         writeElementIfHas(writer, dataSourceNode, Validation.Tag.VALIDATEONMATCH, VALIDATEONMATCH);
@@ -394,7 +438,22 @@ public class DataSourcesExtension implements Extension {
                         writeElementIfHas(writer, dataSourceNode, Validation.Tag.USEFASTFAIL, USE_FAST_FAIL);
                         writeElementIfHas(writer, dataSourceNode, Validation.Tag.STALECONNECTIONCHECKER,
                                 STALECONNECTIONCHECKERCLASSNAME);
+                        if (dataSourceNode.hasDefined(STALECONNECTIONCHECKER_PROPERTIES)) {
+                            for (Property connectionProperty : dataSourceNode.get(STALECONNECTIONCHECKER_PROPERTIES)
+                                    .asPropertyList()) {
+                                writeProperty(writer, dataSourceNode, connectionProperty.getName(), connectionProperty
+                                        .getValue().asString(),
+                                        org.jboss.jca.common.api.metadata.common.Extension.Tag.CONFIG_PROPERTY.getLocalName());
+                            }
+                        }
                         writeElementIfHas(writer, dataSourceNode, Validation.Tag.EXCEPTIONSORTER, EXCEPTIONSORTERCLASSNAME);
+                        if (dataSourceNode.hasDefined(EXCEPTIONSORTER_PROPERTIES)) {
+                            for (Property connectionProperty : dataSourceNode.get(EXCEPTIONSORTER_PROPERTIES).asPropertyList()) {
+                                writeProperty(writer, dataSourceNode, connectionProperty.getName(), connectionProperty
+                                        .getValue().asString(),
+                                        org.jboss.jca.common.api.metadata.common.Extension.Tag.CONFIG_PROPERTY.getLocalName());
+                            }
+                        }
                         writer.writeEndElement();
                     }
                     boolean timeoutRequired = hasAnyOf(dataSourceNode, BLOCKING_TIMEOUT_WAIT_MILLIS, IDLETIMEOUTMINUTES,
@@ -451,6 +510,13 @@ public class DataSourcesExtension implements Extension {
         }
 
         private void writeAttributeIfHas(final XMLExtendedStreamWriter writer, final ModelNode node,
+                final Recovery.Attribute attr, final String identifier) throws XMLStreamException {
+            if (has(node, identifier)) {
+                writer.writeAttribute(attr.getLocalName(), node.get(identifier).asString());
+            }
+        }
+
+        private void writeAttributeIfHas(final XMLExtendedStreamWriter writer, final ModelNode node,
                 final Driver.Attribute attr, final String identifier) throws XMLStreamException {
             if (has(node, identifier)) {
                 writer.writeAttribute(attr.getLocalName(), node.get(identifier).asString());
@@ -464,9 +530,8 @@ public class DataSourcesExtension implements Extension {
             }
         }
 
-        private void writeConnectionProperty(XMLExtendedStreamWriter writer, ModelNode node, String name, String value)
+        private void writeProperty(XMLExtendedStreamWriter writer, ModelNode node, String name, String value, String localName)
                 throws XMLStreamException {
-            String localName = DataSource.Tag.CONNECTIONPROPERTY.getLocalName();
 
             writer.writeStartElement(localName);
             writer.writeAttribute("name", name);

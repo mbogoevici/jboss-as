@@ -79,6 +79,8 @@ class Constants {
 
     static final String ENABLED = "enabled";
 
+    static final String JTA = "jta";
+
     static final String JNDINAME = "jndi-name";
 
     static final String URLDELIMITER = "url-delimiter";
@@ -161,7 +163,7 @@ class Constants {
 
     static final String RECOVERY_SECURITY_DOMAIN = "recovery-security-domain";
 
-    static final String RECOVERLUGIN_CLASSNAME = "recovery-plugin-properties";
+    static final String RECOVERLUGIN_CLASSNAME = "recovery-plugin-class-name";
 
     static final String RECOVERLUGIN_PROPERTIES = "recovery-plugin-properties";
 

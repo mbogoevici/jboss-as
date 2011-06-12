@@ -31,7 +31,7 @@ import javax.inject.Inject;
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServlet;
 
-import org.jboss.arquillian.api.Deployment;
+import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.as.testsuite.integration.osgi.http.bundle.EndpointServlet;
 import org.jboss.as.testsuite.integration.osgi.http.bundle.HttpExampleActivator;
@@ -41,6 +41,7 @@ import org.jboss.osgi.testing.OSGiManifestBuilder;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.Asset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.osgi.framework.Bundle;
@@ -56,6 +57,7 @@ import org.osgi.util.tracker.ServiceTracker;
  * @since 23-Jan-2009
  */
 @RunWith(Arquillian.class)
+@Ignore("[AS7-734] Migrate to ARQ Beta1")
 public class HttpServiceTestCase {
 
     @Inject
@@ -65,7 +67,7 @@ public class HttpServiceTestCase {
     public static JavaArchive createdeployment() {
         final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "example-http");
         archive.addClasses(HttpExampleActivator.class, EndpointServlet.class);
-        archive.addResource("osgi/http/message.txt", "res/message.txt");
+        archive.addAsResource("osgi/http/message.txt", "res/message.txt");
         archive.setManifest(new Asset() {
             public InputStream openStream() {
                 OSGiManifestBuilder builder = OSGiManifestBuilder.newInstance();

@@ -22,42 +22,31 @@
 
 package org.jboss.as.test.embedded.mgmt;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ATTRIBUTES;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DESCRIPTION;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FAILED;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUTCOME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_ATTRIBUTE_OPERATION;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_RESOURCE_DESCRIPTION_OPERATION;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_RESOURCE_OPERATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.Collection;
+import java.net.UnknownHostException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import junit.framework.Assert;
 
-import org.jboss.arquillian.api.Deployment;
-import org.jboss.arquillian.api.Run;
-import org.jboss.arquillian.api.RunModeType;
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.as.controller.client.ModelControllerClient;
-import org.jboss.as.protocol.StreamUtils;
 import org.jboss.as.test.modular.utils.ShrinkWrapUtils;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.Property;
 import org.jboss.shrinkwrap.api.Archive;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -66,24 +55,17 @@ import org.junit.runner.RunWith;
  * @author Emanuel Muckenhuber
  */
 @RunWith(Arquillian.class)
-@Run(RunModeType.AS_CLIENT)
+@RunAsClient
 public class DataSourcesOperationsUnitTestCase {
 
-    private ModelControllerClient client;
-
-    @Deployment
+    @Deployment(testable = false)
     public static Archive<?> getDeployment() {
         return ShrinkWrapUtils.createEmptyJavaArchive("dummy");
     }
 
-    @Before
-    public void setUp() throws Exception {
-        this.client = ModelControllerClient.Factory.create(InetAddress.getByName("localhost"), 9999);
-    }
-
-    @After
-    public void tearDown() {
-        StreamUtils.safeClose(client);
+    // [ARQ-458] @Before not called with @RunAsClient
+    private ModelControllerClient getModelControllerClient() throws UnknownHostException {
+        return ModelControllerClient.Factory.create(InetAddress.getByName("localhost"), 9999);
     }
 
     @Test
@@ -98,7 +80,7 @@ public class DataSourcesOperationsUnitTestCase {
         operation.get("child-type").set("data-source");
         operation.get(OP_ADDR).set(address);
 
-        final ModelNode result = client.execute(operation);
+        final ModelNode result = getModelControllerClient().execute(operation);
         Assert.assertTrue(result.hasDefined(RESULT));
         Assert.assertEquals(SUCCESS, result.get(OUTCOME).asString());
         final Map<String, ModelNode> children = getChildren(result.get(RESULT));
@@ -134,7 +116,7 @@ public class DataSourcesOperationsUnitTestCase {
         operation.get("user-name").set("sa");
         operation.get("password").set("sa");
 
-        final ModelNode result = client.execute(operation);
+        final ModelNode result = getModelControllerClient().execute(operation);
         Assert.assertEquals(SUCCESS, result.get(OUTCOME).asString());
 
         final ModelNode address2 = new ModelNode();
@@ -146,7 +128,7 @@ public class DataSourcesOperationsUnitTestCase {
         operation2.get(OP).set("test-connection-in-pool");
         operation2.get(OP_ADDR).set(address2);
 
-        final ModelNode result2 = client.execute(operation2);
+        final ModelNode result2 = getModelControllerClient().execute(operation2);
         Assert.assertEquals(SUCCESS, result2.get(OUTCOME).asString());
 
     }

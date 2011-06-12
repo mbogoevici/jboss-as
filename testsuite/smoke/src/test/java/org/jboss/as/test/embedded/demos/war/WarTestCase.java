@@ -25,14 +25,13 @@ import java.net.URL;
 
 import junit.framework.Assert;
 
-import org.jboss.arquillian.api.Deployment;
-import org.jboss.arquillian.api.Run;
-import org.jboss.arquillian.api.RunModeType;
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.as.demos.war.archive.SimpleServlet;
 import org.jboss.as.test.modular.utils.PollingUtils;
-import org.jboss.as.test.modular.utils.ShrinkWrapUtils;
 import org.jboss.as.test.modular.utils.PollingUtils.UrlConnectionTask;
+import org.jboss.as.test.modular.utils.ShrinkWrapUtils;
 import org.jboss.shrinkwrap.api.Archive;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,11 +42,11 @@ import org.junit.runner.RunWith;
  * @version $Revision: 1.1 $
  */
 @RunWith(Arquillian.class)
-@Run(RunModeType.AS_CLIENT)
+@RunAsClient
 public class WarTestCase {
 
-    @Deployment
-    public static Archive<?> getDeployment(){
+    @Deployment(testable = false)
+    public static Archive<?> getDeployment() {
         return ShrinkWrapUtils.createWebArchive("demos/war-example.war", SimpleServlet.class.getPackage());
     }
 
@@ -62,7 +61,6 @@ public class WarTestCase {
         String s = performCall("legacy", "Hello");
         Assert.assertEquals("Simple Legacy Servlet called with input=Hello", s);
     }
-
 
     private static String performCall(String urlPattern, String param) throws Exception {
         URL url = new URL("http://localhost:8080/war-example/" + urlPattern + "?input=" + param);

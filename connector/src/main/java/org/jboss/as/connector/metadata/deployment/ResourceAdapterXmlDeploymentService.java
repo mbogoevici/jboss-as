@@ -23,50 +23,24 @@
 package org.jboss.as.connector.metadata.deployment;
 
 import org.jboss.as.connector.ConnectorServices;
-import org.jboss.as.connector.deployers.processors.ParsedRaDeploymentProcessor;
 import org.jboss.as.connector.metadata.xmldescriptors.ConnectorXmlDescriptor;
-import org.jboss.as.connector.services.AdminObjectReferenceFactoryService;
-import org.jboss.as.connector.services.AdminObjectService;
-import org.jboss.as.connector.services.ConnectionFactoryReferenceFactoryService;
-import org.jboss.as.connector.services.ConnectionFactoryService;
-import org.jboss.as.connector.subsystems.jca.JcaSubsystemConfiguration;
-import org.jboss.as.connector.util.Injection;
-import org.jboss.as.naming.ManagedReferenceFactory;
-import org.jboss.as.naming.NamingStore;
-import org.jboss.as.naming.deployment.ContextNames;
-import org.jboss.as.naming.service.BinderService;
 import org.jboss.jca.common.api.metadata.ironjacamar.IronJacamar;
-import org.jboss.jca.common.api.metadata.ra.ConfigProperty;
 import org.jboss.jca.common.api.metadata.ra.Connector;
 import org.jboss.jca.common.api.metadata.resourceadapter.ResourceAdapter;
-import org.jboss.jca.core.api.connectionmanager.ccm.CachedConnectionManager;
-import org.jboss.jca.core.spi.mdr.AlreadyExistsException;
-import org.jboss.jca.core.spi.transaction.TransactionIntegration;
-import org.jboss.jca.deployers.common.AbstractResourceAdapterDeployer;
+import org.jboss.jca.common.metadata.merge.Merger;
+import org.jboss.jca.deployers.DeployersLogger;
 import org.jboss.jca.deployers.common.CommonDeployment;
-import org.jboss.jca.deployers.common.DeployException;
 import org.jboss.logging.Logger;
 import org.jboss.modules.Module;
-import org.jboss.msc.inject.Injector;
-import org.jboss.msc.service.AbstractServiceListener;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceContainer;
-import org.jboss.msc.service.ServiceController;
-import org.jboss.msc.service.ServiceName;
+import org.jboss.msc.service.ServiceTarget;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
-import org.jboss.msc.value.InjectedValue;
-import org.jboss.msc.value.Value;
-import org.jboss.security.SubjectFactory;
 
-import javax.transaction.TransactionManager;
 import java.io.File;
-import java.io.PrintWriter;
 import java.net.URL;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.List;
 
 /**
  * A ResourceAdapterXmlDeploymentService.
@@ -80,48 +54,57 @@ public final class ResourceAdapterXmlDeploymentService extends AbstractResourceA
 
     private final Module module;
     private final ConnectorXmlDescriptor connectorXmlDescriptor;
-    private final String deploymentName;
-    private final File root;
     private final ResourceAdapter raxml;
-    private final Connector cmd;
-    private final IronJacamar ijmd;
+    private final String deployment;
 
     public ResourceAdapterXmlDeploymentService(ConnectorXmlDescriptor connectorXmlDescriptor, ResourceAdapter raxml,
-            Connector cmd, IronJacamar ijmd, Module module, String deploymentName, File root) {
+            Module module, final String deployment) {
         this.connectorXmlDescriptor = connectorXmlDescriptor;
         this.raxml = raxml;
-        this.cmd = cmd;
-        this.ijmd = ijmd;
         this.module = module;
-        this.deploymentName = deploymentName;
-        this.root = root;
+        this.deployment = deployment;
     }
 
-    /** create an instance **/
+    /**
+     * create an instance *
+     */
 
     @Override
     public void start(StartContext context) throws StartException {
-        log.debugf("Starting sevice %s",
-                ConnectorServices.RESOURCE_ADAPTER_XML_SERVICE_PREFIX.append(this.value.getDeployment().getDeploymentName()));
-
-        final ServiceContainer container = context.getController().getServiceContainer();
-        final AS7RaXmlDeployer raDeployer = new AS7RaXmlDeployer(container, connectorXmlDescriptor.getUrl(), deploymentName, root,
-                module.getClassLoader(), cmd, raxml);
-
-        raDeployer.setConfiguration(config.getValue());
-
-        CommonDeployment raxmlDeployment = null;
         try {
-            raxmlDeployment = raDeployer.doDeploy();
-        } catch (Throwable t) {
-            throw new StartException("Failed to start RA deployment [" + deploymentName + "]", t);
+            log.debugf("Starting sevice %s",
+                    ConnectorServices.RESOURCE_ADAPTER_XML_SERVICE_PREFIX.append(connectorXmlDescriptor.getDeploymentName()));
+
+            String archive = raxml.getArchive();
+
+            Connector cmd = mdr.getValue().getResourceAdapter(deployment);
+            IronJacamar ijmd = mdr.getValue().getIronJacamar(deployment);
+            File root = mdr.getValue().getRoot(deployment);
+
+            cmd = (new Merger()).mergeConnectorWithCommonIronJacamar(raxml, cmd);
+
+            String deploymentName = archive.substring(0, archive.indexOf(".rar"));
+
+            final ServiceContainer container = context.getController().getServiceContainer();
+            final AS7RaXmlDeployer raDeployer = new AS7RaXmlDeployer(context.getChildTarget(), connectorXmlDescriptor.getUrl(),
+                    deploymentName, root, module.getClassLoader(), cmd, raxml, ijmd);
+
+            raDeployer.setConfiguration(config.getValue());
+
+            CommonDeployment raxmlDeployment = null;
+            try {
+                raxmlDeployment = raDeployer.doDeploy();
+            } catch (Throwable t) {
+                throw new StartException("Failed to start RA deployment [" + deploymentName + "]", t);
+            }
+
+            value = new ResourceAdapterDeployment(raxmlDeployment);
+
+            registry.getValue().registerResourceAdapterDeployment(value);
+            managementRepository.getValue().getConnectors().add(value.getDeployment().getConnector());
+        } catch (Exception e) {
+            throw new StartException(e);
         }
-
-        value = new ResourceAdapterDeployment(raxmlDeployment);
-
-        registry.getValue().registerResourceAdapterDeployment(value);
-        managementRepository.getValue().getConnectors().add(value.getDeployment().getConnector());
-
     }
 
     /**
@@ -138,11 +121,13 @@ public final class ResourceAdapterXmlDeploymentService extends AbstractResourceA
     private class AS7RaXmlDeployer extends AbstractAS7RaDeployer {
 
         private final ResourceAdapter ra;
+        private final IronJacamar ijmd;
 
-        public AS7RaXmlDeployer(ServiceContainer serviceContainer, URL url, String deploymentName, File root, ClassLoader cl,
-                Connector cmd, ResourceAdapter ra) {
-            super(serviceContainer, url, deploymentName, root, cl, cmd);
+        public AS7RaXmlDeployer(ServiceTarget serviceTarget, URL url, String deploymentName, File root, ClassLoader cl,
+                Connector cmd, ResourceAdapter ra, IronJacamar ijmd) {
+            super(serviceTarget, url, deploymentName, root, cl, cmd);
             this.ra = ra;
+            this.ijmd = ijmd;
         }
 
         @Override
@@ -160,6 +145,12 @@ public final class ResourceAdapterXmlDeploymentService extends AbstractResourceA
         @Override
         protected boolean checkActivation(Connector cmd, IronJacamar ijmd) {
             return true;
+        }
+
+        @Override
+        protected DeployersLogger getLogger() {
+
+            return Logger.getMessageLogger(DeployersLogger.class, AS7RaXmlDeployer.class.getName());
         }
 
     }

@@ -22,7 +22,10 @@
 
 package org.jboss.as.testsuite.integration.jpa.defaultdatasource;
 
-import org.jboss.arquillian.api.Deployment;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+
+import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -33,17 +36,13 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-
-import static org.junit.Assert.assertEquals;
-
 /**
  * default datasource tests
  *
  * @author Scott Marlow
  */
 @RunWith(Arquillian.class)
+@Ignore("[AS7-734] Migrate to ARQ Beta1")
 public class DatasourceTestCase {
 
     private static final String ARCHIVE_NAME = "jpa_sessionfactory";
@@ -79,8 +78,7 @@ public class DatasourceTestCase {
             SFSB1.class
         );
 
-        jar.addResource(new StringAsset(persistence_xml), "META-INF/persistence.xml");
-        //jar.addResource(new StringAsset(""), "META-INF/MANIFEST.MF");
+        jar.addAsResource(new StringAsset(persistence_xml), "META-INF/persistence.xml");
         return jar;
     }
 
@@ -93,11 +91,8 @@ public class DatasourceTestCase {
     }
 
     @Test
-    @Ignore
     public void testEntityManagerInvocation() throws Exception {
         SFSB1 sfsb1 = lookup("SFSB1", SFSB1.class);
         sfsb1.getEmployeeNoTX(1);
     }
-
-
 }

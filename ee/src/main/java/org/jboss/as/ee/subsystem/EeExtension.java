@@ -35,7 +35,6 @@ import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.descriptions.common.CommonDescriptions;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.parsing.ExtensionParsingContext;
-import org.jboss.as.controller.parsing.ParseUtils;
 import org.jboss.as.controller.persistence.SubsystemMarshallingContext;
 import org.jboss.as.controller.registry.ModelNodeRegistration;
 import org.jboss.as.controller.registry.OperationEntry;
@@ -52,8 +51,17 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.*;
-import static org.jboss.as.controller.parsing.ParseUtils.*;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DESCRIBE;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAME;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
+import static org.jboss.as.controller.parsing.ParseUtils.missingRequired;
+import static org.jboss.as.controller.parsing.ParseUtils.requireNoAttributes;
+import static org.jboss.as.controller.parsing.ParseUtils.requireNoContent;
+import static org.jboss.as.controller.parsing.ParseUtils.requireNoNamespaceAttribute;
+import static org.jboss.as.controller.parsing.ParseUtils.unexpectedAttribute;
+import static org.jboss.as.controller.parsing.ParseUtils.unexpectedElement;
 
 /**
  * JBossAS domain extension used to initialize the ee subsystem handlers and associated classes.
@@ -87,7 +95,7 @@ public class EeExtension implements Extension {
         context.setSubsystemXmlMapping(NAMESPACE, parser);
     }
 
-    static ModelNode createAddOperation() {
+    static ModelNode createEESubSystemAddOperation() {
         final ModelNode subsystem = new ModelNode();
         subsystem.get(OP).set(ADD);
         subsystem.get(OP_ADDR).add(ModelDescriptionConstants.SUBSYSTEM, SUBSYSTEM_NAME);
@@ -105,11 +113,18 @@ public class EeExtension implements Extension {
             //TODO seems to be a problem with empty elements cleaning up the queue in FormattingXMLStreamWriter.runAttrQueue
             //context.startSubsystemElement(NewEeExtension.NAMESPACE, true);
             context.startSubsystemElement(EeExtension.NAMESPACE, false);
-            ModelNode node = context.getModelNode();
-            if (node.hasDefined(CommonAttributes.GLOBAL_MODULES)) {
+            ModelNode eeSubSystem = context.getModelNode();
+            // write the ear subdeployment isolation attribute
+            if (eeSubSystem.hasDefined(Element.EAR_SUBDEPLOYMENTS_ISOLATED.getLocalName())) {
+                writer.writeStartElement(Element.EAR_SUBDEPLOYMENTS_ISOLATED.getLocalName());
+                final ModelNode earSubDeploymentsIsolated = eeSubSystem.get(Element.EAR_SUBDEPLOYMENTS_ISOLATED.getLocalName());
+                writer.writeCharacters(earSubDeploymentsIsolated.asString());
+                writer.writeEndElement();
+            }
+            if (eeSubSystem.hasDefined(CommonAttributes.GLOBAL_MODULES)) {
                 writer.writeStartElement(Element.GLOBAL_MODULES.getLocalName());
-                final ModelNode globalModules = node.get(CommonAttributes.GLOBAL_MODULES);
-                for(ModelNode module : globalModules.asList()) {
+                final ModelNode globalModules = eeSubSystem.get(CommonAttributes.GLOBAL_MODULES);
+                for (ModelNode module : globalModules.asList()) {
                     writer.writeStartElement(Element.MODULE.getLocalName());
                     writer.writeAttribute(Attribute.NAME.getLocalName(), module.get(CommonAttributes.NAME).asString());
                     writer.writeAttribute(Attribute.SLOT.getLocalName(), module.get(CommonAttributes.SLOT).asString());
@@ -127,10 +142,12 @@ public class EeExtension implements Extension {
          */
         @Override
         public void readElement(XMLExtendedStreamReader reader, List<ModelNode> list) throws XMLStreamException {
-            ParseUtils.requireNoAttributes(reader);
+            // EE subsystem doesn't have any attributes, so make sure that the xml doesn't have any
+            requireNoAttributes(reader);
 
-            final ModelNode subsystem = createAddOperation();
-            list.add(subsystem);
+            final ModelNode eeSubSystem = createEESubSystemAddOperation();
+            // add the subsytem to the ModelNode(s)
+            list.add(eeSubSystem);
 
             // elements
             final EnumSet<Element> encountered = EnumSet.noneOf(Element.class);
@@ -144,7 +161,15 @@ public class EeExtension implements Extension {
                         switch (element) {
                             case GLOBAL_MODULES: {
                                 final ModelNode model = parseGlobalModules(reader);
-                                subsystem.get(CommonAttributes.GLOBAL_MODULES).set(model);
+                                eeSubSystem.get(CommonAttributes.GLOBAL_MODULES).set(model);
+                                break;
+                            }
+                            case EAR_SUBDEPLOYMENTS_ISOLATED: {
+                                final Boolean earSubDeploymentsIsolated = this.parseEarSubDeploymentsIsolatedElement(reader);
+                                // set the ear subdeployment isolation on the subsystem operation
+                                if (earSubDeploymentsIsolated != null) {
+                                    eeSubSystem.get(Element.EAR_SUBDEPLOYMENTS_ISOLATED.getLocalName()).set(earSubDeploymentsIsolated.booleanValue());
+                                }
                                 break;
                             }
                             default: {
@@ -214,6 +239,17 @@ public class EeExtension implements Extension {
             return globalModules;
         }
 
+        static Boolean parseEarSubDeploymentsIsolatedElement(XMLExtendedStreamReader reader) throws XMLStreamException {
+
+            // we don't expect any attributes for this element.
+            requireNoAttributes(reader);
+
+            final String value = reader.getElementText();
+            if (value == null || value.trim().isEmpty()) {
+                throw new XMLStreamException("Invalid value: " + value + " for '" + Element.EAR_SUBDEPLOYMENTS_ISOLATED + "' element", reader.getLocation());
+            }
+            return Boolean.parseBoolean(value.trim());
+        }
     }
 
     private static class EESubsystemDescribeHandler implements ModelQueryOperationHandler, DescriptionProvider {
@@ -222,7 +258,7 @@ public class EeExtension implements Extension {
         @Override
         public OperationResult execute(OperationContext context, ModelNode operation, ResultHandler resultHandler) {
             ModelNode node = new ModelNode();
-            node.add(createAddOperation());
+            node.add(createEESubSystemAddOperation());
 
             resultHandler.handleResultFragment(Util.NO_LOCATION, node);
             resultHandler.handleResultComplete();

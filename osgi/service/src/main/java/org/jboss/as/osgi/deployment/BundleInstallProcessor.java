@@ -22,27 +22,16 @@
 
 package org.jboss.as.osgi.deployment;
 
-import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
-import org.jboss.msc.service.ServiceController;
-import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.service.ServiceController.Mode;
 import org.jboss.osgi.deployment.deployer.Deployment;
-import org.jboss.osgi.deployment.deployer.DeploymentFactory;
-import org.jboss.osgi.metadata.OSGiMetaData;
-import org.jboss.osgi.resolver.XModule;
-import org.jboss.osgi.spi.util.BundleInfo;
-import org.jboss.osgi.vfs.AbstractVFS;
-import org.jboss.vfs.VirtualFile;
-import org.osgi.framework.Version;
 
 /**
  * Processes deployments that have OSGi metadata attached.
  *
- * If so, it creates an {@link BundleInstallProvider}.
+ * If so, it creates an {@link BundleInstallService}.
  *
  * @author Thomas.Diesler@jboss.com
  * @since 20-Sep-2010
@@ -52,66 +41,18 @@ public class BundleInstallProcessor implements DeploymentUnitProcessor {
     @Override
     public void deploy(final DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
 
-        final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
-        final String contextName = deploymentUnit.getName();
-
-        // Check if we already have an OSGi deployment
-        Deployment deployment = OSGiDeploymentAttachment.getDeployment(deploymentUnit);
-
-        // Check if {@link InstallHandlerIntegration} provided the {@link Deployment}
-        if (deployment == null) {
-            ServiceRegistry serviceRegistry = phaseContext.getServiceRegistry();
-            ServiceController<Deployment> controller = DeploymentHolderService.getDeployment(serviceRegistry, contextName);
-            if (controller != null) {
-                deployment = controller.getValue();
-                controller.setMode(Mode.REMOVE);
-            }
-        }
-
-        // Check for attached BundleInfo
-        BundleInfo info = BundleInfoAttachment.getBundleInfo(deploymentUnit);
-        if (deployment == null && info != null) {
-            deployment = DeploymentFactory.createDeployment(info);
-            deployment.addAttachment(BundleInfo.class, info);
-            deployment.setAutoStart(true);
-            OSGiDeploymentAttachment.attachDeployment(deploymentUnit, deployment);
-        }
-
-        // Check for attached OSGiMetaData
-        OSGiMetaData metadata = OSGiMetaDataAttachment.getOSGiMetaData(deploymentUnit);
-        if (deployment == null && metadata != null) {
-            String symbolicName = metadata.getBundleSymbolicName();
-            Version version = metadata.getBundleVersion();
-            VirtualFile virtualFile = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT).getRoot();
-            deployment = DeploymentFactory.createDeployment(AbstractVFS.adapt(virtualFile), contextName, symbolicName, version);
-            deployment.setAutoStart(true);
-            deployment.addAttachment(OSGiMetaData.class, metadata);
-            OSGiDeploymentAttachment.attachDeployment(deploymentUnit, deployment);
-        }
-
-        // Check for attached XModule
-        XModule resModule = XModuleAttachment.getXModuleAttachment(deploymentUnit);
-        if (deployment == null && resModule != null) {
-            String symbolicName = resModule.getName();
-            Version version = resModule.getVersion();
-            VirtualFile virtualFile = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT).getRoot();
-            deployment = DeploymentFactory.createDeployment(AbstractVFS.adapt(virtualFile), contextName, symbolicName, version);
-            deployment.setAutoStart(true);
-            deployment.addAttachment(XModule.class, resModule);
-            OSGiDeploymentAttachment.attachDeployment(deploymentUnit, deployment);
-        }
-
-        // Create the {@link BundleInstallProvider}
+        final DeploymentUnit depUnit = phaseContext.getDeploymentUnit();
+        final Deployment deployment = OSGiDeploymentAttachment.getDeployment(depUnit);
         if (deployment != null) {
-            // Prevent garbage collection of the MountHandle which will close the file
-            // MountHandle mount = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT).getMountHandle();
-            // deployment.addAttachment(MountHandle.class, mount);
             BundleInstallService.addService(phaseContext, deployment);
         }
     }
 
     @Override
-    public void undeploy(final DeploymentUnit deploymentUnit) {
-        BundleInstallService.removeService(deploymentUnit);
+    public void undeploy(final DeploymentUnit depUnit) {
+        final Deployment deployment = OSGiDeploymentAttachment.getDeployment(depUnit);
+        if (deployment != null) {
+            BundleInstallService.removeService(depUnit);
+        }
     }
 }

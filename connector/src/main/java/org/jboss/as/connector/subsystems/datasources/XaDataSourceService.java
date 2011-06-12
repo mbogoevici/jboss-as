@@ -23,18 +23,29 @@
 package org.jboss.as.connector.subsystems.datasources;
 
 import org.jboss.jca.common.api.metadata.ds.XaDataSource;
+import org.jboss.msc.inject.Injector;
+import org.jboss.msc.value.InjectedValue;
 
 /**
  * XA data-source service implementation.
  * @author John Bailey
+ * @author Stefano Maestri
  */
 public class XaDataSourceService extends AbstractDataSourceService {
-    private final XaDataSource dataSourceConfig;
 
-    public XaDataSourceService(final String jndiName, final XaDataSource dataSourceConfig) {
+    private final InjectedValue<XaDataSource> dataSourceConfig = new InjectedValue<XaDataSource>();
+
+    public XaDataSourceService(final String jndiName) {
         super(jndiName);
-        this.dataSourceConfig = dataSourceConfig;
-        deployer = new AS7DataSourceDeployer(log, dataSourceConfig);
     }
 
+    public AS7DataSourceDeployer getDeployer() {
+        // this.dataSourceConfig = dataSourceConfig;
+        return new AS7DataSourceDeployer(dataSourceConfig.getValue());
+
+    }
+
+    public Injector<XaDataSource> getDataSourceConfigInjector() {
+        return dataSourceConfig;
+    }
 }

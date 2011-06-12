@@ -37,14 +37,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.inject.Inject;
 
-import org.jboss.arquillian.api.Deployment;
+import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.as.osgi.service.ConfigAdminListener;
 import org.jboss.as.osgi.service.ConfigAdminService;
-import org.jboss.as.osgi.service.ConfigAdminServiceImpl;
 import org.jboss.as.test.modular.utils.ShrinkWrapUtils;
+import org.jboss.msc.service.AbstractServiceListener;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceController;
+import org.jboss.msc.service.ServiceTarget;
 import org.jboss.shrinkwrap.api.Archive;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -60,6 +61,9 @@ public class ConfigAdminServiceTestCase {
 
     @Inject
     public ServiceContainer serviceContainer;
+
+    @Inject
+    public ServiceTarget serviceTarget;
 
     @Deployment
     public static Archive<?> deployment() {
@@ -156,6 +160,7 @@ public class ConfigAdminServiceTestCase {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testConfiguredService() throws Exception {
 
         Dictionary<String, String> config = new Hashtable<String, String>();
@@ -165,8 +170,17 @@ public class ConfigAdminServiceTestCase {
         ConfigAdminService configAdmin = getConfigAdminService();
         configAdmin.putConfiguration(ConfiguredService.SERVICE_PID, config);
         try {
-            ConfiguredService.addService(serviceContainer);
-            ConfiguredService service = ConfiguredService.await(serviceContainer, 5, TimeUnit.SECONDS);
+            ConfiguredService.addService(serviceTarget);
+            final CountDownLatch latch = new CountDownLatch(1);
+            final ServiceController<ConfiguredService> controller = (ServiceController<ConfiguredService>) serviceContainer.getService(ConfiguredService.SERVICE_NAME);
+            controller.addListener(new AbstractServiceListener<ConfiguredService>(){
+                public void serviceStarted(ServiceController<? extends ConfiguredService> controller) {
+                    controller.removeListener(this);
+                    latch.countDown();
+                }
+            });
+            latch.await(3, TimeUnit.SECONDS);
+            ConfiguredService service = controller.getValue();
             assertEquals("bar", service.getConfigValue("foo"));
         } finally {
             configAdmin.removeConfiguration(ConfiguredService.SERVICE_PID);
@@ -175,10 +189,10 @@ public class ConfigAdminServiceTestCase {
 
     // [TODO] Move this to @Before when Arquillian supports injected values there
     private ConfigAdminService getConfigAdminService() {
-        ServiceController<?> controller = serviceContainer.getService(ConfigAdminServiceImpl.SERVICE_NAME);
-        assertNotNull("ServiceController available: " + ConfigAdminServiceImpl.SERVICE_NAME, controller);
+        ServiceController<?> controller = serviceContainer.getService(ConfigAdminService.SERVICE_NAME);
+        assertNotNull("ServiceController available: " + ConfigAdminService.SERVICE_NAME, controller);
         ConfigAdminService configAdmin = (ConfigAdminService) controller.getValue();
-        assertNotNull("Service available: " + ConfigAdminServiceImpl.SERVICE_NAME, configAdmin);
+        assertNotNull("Service available: " + ConfigAdminService.SERVICE_NAME, configAdmin);
         return configAdmin;
     }
 }

@@ -32,13 +32,14 @@ import javax.management.ObjectName;
 import javax.management.openmbean.TabularData;
 
 import org.apache.aries.jmx.framework.BundleState;
-import org.jboss.arquillian.api.Deployment;
+import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.osgi.jmx.MBeanProxy;
 import org.jboss.osgi.testing.OSGiManifestBuilder;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.Asset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.osgi.framework.BundleContext;
@@ -52,6 +53,7 @@ import org.osgi.jmx.framework.BundleStateMBean;
  * @since 15-Feb-2010
  */
 @RunWith(Arquillian.class)
+@Ignore("[AS7-734] Migrate to ARQ Beta1")
 public class BundleStateTestCase {
 
     @Inject

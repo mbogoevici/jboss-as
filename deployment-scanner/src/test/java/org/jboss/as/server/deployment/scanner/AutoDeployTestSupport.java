@@ -38,7 +38,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -79,12 +78,12 @@ public class AutoDeployTestSupport {
         URL resource = tccl.getResource("basic.war/index.html");
         if (resource == null)
             throw new IllegalStateException("basic.war/index.html not found");
-        war.addResource(resource, "index.html");
+        war.addAsResource(resource, "index.html");
         war.setWebXML(webxml);
 
         basicWar = new File(tmpDir, "basic.war");
         basicWar.deleteOnExit();
-        war.as(ZipExporter.class).exportZip(basicWar, true);
+        war.as(ZipExporter.class).exportTo(basicWar, true);
     }
 
     public void cleanupChannels() {

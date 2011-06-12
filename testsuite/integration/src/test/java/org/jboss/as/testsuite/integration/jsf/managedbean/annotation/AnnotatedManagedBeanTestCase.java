@@ -21,15 +21,16 @@
  */
 package org.jboss.as.testsuite.integration.jsf.managedbean.annotation;
 
-import org.jboss.arquillian.api.Deployment;
+import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
-import org.jboss.shrinkwrap.api.asset.EmptyAsset;
+import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import sun.tools.jar.resources.jar;
 
 /**
  * @author Stuart Douglas
@@ -41,8 +42,7 @@ public class AnnotatedManagedBeanTestCase {
     public static Archive<?> deploy() {
         final WebArchive war = ShrinkWrap.create(WebArchive.class, "jsfmanagedbean.war");
         war.addPackage(AnnotatedManagedBeanTestCase.class.getPackage());
-        war.addWebResource(EmptyAsset.INSTANCE, "beans.xml");
-
+        war.addAsWebInfResource(new StringAsset(""), "beans.xml");
         return war;
     }
 

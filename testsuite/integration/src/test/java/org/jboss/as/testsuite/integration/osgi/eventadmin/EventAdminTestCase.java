@@ -32,13 +32,13 @@ import java.util.List;
 
 import javax.inject.Inject;
 
-import org.jboss.arquillian.api.Deployment;
-import org.jboss.arquillian.api.DeploymentProvider;
+import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.osgi.testing.OSGiManifestBuilder;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.Asset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.osgi.framework.Bundle;
@@ -56,15 +56,13 @@ import org.osgi.service.event.EventHandler;
  * @since 08-Dec-2009
  */
 @RunWith(Arquillian.class)
+@Ignore("[AS7-734] Migrate to ARQ Beta1")
 public class EventAdminTestCase {
 
     static String TOPIC = "org/jboss/test/osgi/example/event";
 
     @Inject
     public Bundle bundle;
-
-    @Inject
-    public DeploymentProvider provider;
 
     @Inject
     public BundleContext context;

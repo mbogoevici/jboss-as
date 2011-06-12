@@ -21,14 +21,14 @@
  */
 package org.jboss.as.clustering.infinispan.subsystem;
 
-import java.util.Map;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ScheduledExecutorService;
+import org.infinispan.config.Configuration;
 
 import javax.management.MBeanServer;
 import javax.transaction.TransactionManager;
-
-import org.infinispan.config.Configuration;
+import javax.transaction.TransactionSynchronizationRegistry;
+import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * @author Paul Ferraro
@@ -42,6 +42,7 @@ public interface EmbeddedCacheManagerConfiguration {
     TransportConfiguration getTransportConfiguration();
     EmbeddedCacheManagerDefaults getDefaults();
     TransactionManager getTransactionManager();
+    TransactionSynchronizationRegistry getTransactionSynchronizationRegistry();
     MBeanServer getMBeanServer();
     Executor getListenerExecutor();
     ScheduledExecutorService getEvictionExecutor();

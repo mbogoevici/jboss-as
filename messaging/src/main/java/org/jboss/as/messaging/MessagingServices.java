@@ -35,7 +35,9 @@ public class MessagingServices {
     /** The core queue name base. */
     public static final ServiceName CORE_QUEUE_BASE = JBOSS_MESSAGING.append("queue");
 
-    static enum TransportConfigType {
+    public static final ServiceName POOLED_CONNECTION_FACTORY_BASE = JBOSS_MESSAGING.append("pooled-connection-factory");
+
+    public static enum TransportConfigType {
         Remote, InVM, Generic
     }
 

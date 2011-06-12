@@ -24,7 +24,6 @@
         xmlns="urn:jboss:domain:1.0"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="urn:jboss:domain:1.0 jboss_7_0.xsd
-                            urn:jboss:domain:arquillian:1.0 jboss-arquillian.xsd
                             urn:jboss:domain:jca:1.0 jboss-jca.xsd
                             urn:jboss:domain:datasources:1.0 jboss-datasources.xsd
                             urn:jboss:domain:ejb3:1.0 jboss-ejb3.xsd
@@ -49,7 +48,6 @@
                             urn:jboss:domain:weld:1.0 jboss-weld.xsd">
 
     <extensions>
-        <extension module="org.jboss.as.arquillian.service"/>
         <extension module="org.jboss.as.clustering"/>
         <extension module="org.jboss.as.connector"/>
         <extension module="org.jboss.as.deployment-scanner"/>
@@ -142,7 +140,6 @@
                 <keepalive-time time="10" unit="seconds"/>
             </bounded-queue-thread-pool>
         </subsystem>
-        <subsystem xmlns="urn:jboss:domain:arquillian:1.0" />
         <subsystem xmlns="urn:jboss:domain:ee:1.0" />
         <subsystem xmlns="urn:jboss:domain:ejb3:1.0" />
         <subsystem xmlns="urn:jboss:domain:naming:1.0" />
@@ -173,14 +170,30 @@
         <subsystem xmlns="urn:jboss:domain:jca:1.0">
             <archive-validation enabled="false" />
             <bean-validation enabled="false" />
-            <default-workmanager short-running-thread-pool="jca-short-running" long-running-thread-pool="jca-long-running" />
+            <default-workmanager>
+            	<short-running-threads>
+            		<bounded-queue-thread-pool xmlns="urn:jboss:domain:threads:1.0" name="jca-short-running" blocking="true">
+                		<core-threads count="10" per-cpu="20"/>
+                		<queue-length count="10" per-cpu="20"/>
+                		<max-threads count="10" per-cpu="20"/>
+                		<keepalive-time time="10" unit="seconds"/>
+            		</bounded-queue-thread-pool>
+            	</short-running-threads>
+            	<long-running-threads>
+	            	<bounded-queue-thread-pool xmlns="urn:jboss:domain:threads:1.0" name="jca-long-running" blocking="true">
+		                <core-threads count="10" per-cpu="20"/>
+		                <queue-length count="10" per-cpu="20"/>
+		                <max-threads count="10" per-cpu="20"/>
+		                <keepalive-time time="10" unit="seconds"/>
+	            	</bounded-queue-thread-pool>
+            	</long-running-threads>
+            </default-workmanager>
         </subsystem>
         <subsystem xmlns="urn:jboss:domain:datasources:1.0">
             <datasources>
                 <datasource jndi-name="java:/H2DS" enabled="true" use-java-context="true" pool-name="H2DS">
                     <connection-url>jdbc:h2:mem:test;DB_CLOSE_DELAY=-1</connection-url>
-                    <driver-class>org.h2.Driver</driver-class>
-                    <driver>org.h2.Driver#1.2</driver>
+                    <driver>h2</driver>
                     <pool></pool>
                     <security>
                         <user-name>sa</user-name>
@@ -190,67 +203,73 @@
                     <timeout></timeout>
                     <statement></statement>
                 </datasource>
+	            <drivers>
+	                <driver name="h2" module="com.h2database.h2">
+	                	<xa-datasource-class>org.h2.jdbcx.JdbcDataSource</xa-datasource-class>
+	                </driver>
+	            </drivers>
             </datasources>
-            <drivers>
-                <driver module="com.h2database.h2"/>
-            </drivers>
-        </subsystem>
-        <subsystem xmlns="urn:jboss:domain:resourceadapters:1.0">
-                <!--  <resource-adapters>
-				  <resource-adapter>
-				    <archive>ra16out.rar</archive>
-				    <connection-definitions>
-				      <connection-definition jndi-name="java:/eis/ra16out-raxml"
-				                             class-name="org.jboss.jca.test.deployers.spec.rars.ra16out.TestManagedConnectionFactory">
-				      </connection-definition>
-				    </connection-definitions>
-				  </resource-adapter>
-				</resource-adapters>-->
        </subsystem>
-<subsystem xmlns="urn:jboss:domain:osgi:1.0" activation="lazy">
+       <subsystem xmlns="urn:jboss:domain:resourceadapters:1.0" />
+       <subsystem xmlns="urn:jboss:domain:osgi:1.0" activation="lazy">
             <configuration pid="org.apache.felix.webconsole.internal.servlet.OsgiManager">
                 <property name="manager.root">jboss-osgi</property>
             </configuration>
             <properties>
+                <!--
+                    A comma seperated list of module identifiers. Each system module
+                    is added as a dependency to the OSGi framework module. The packages
+                    from these system modules can be made visible as framework system packages.
+                    http://www.osgi.org/javadoc/r4v42/org/osgi/framework/Constants.html#FRAMEWORK_SYSTEMPACKAGES_EXTRA
+                -->
                 <property name="org.jboss.osgi.system.modules">
+                org.apache.commons.logging,
                 org.apache.log4j,
-                org.jboss.arquillian.api,
-                org.jboss.arquillian.junit,
-                org.jboss.arquillian.protocol.jmx,
-                org.jboss.arquillian.protocol.osgi,
-                org.jboss.arquillian.spi,
                 org.jboss.as.osgi,
-                org.jboss.shrinkwrap.api,
-                javax.inject.api,
-                org.junit
+                org.slf4j,
                 </property>
+                <!--
+                    Framework environment property identifying extra packages which the system bundle
+                    must export from the current execution environment
+                -->
                 <property name="org.osgi.framework.system.packages.extra">
-                javax.transaction;version=1.1,
+                org.apache.commons.logging;version=1.1.1,
                 org.apache.log4j;version=1.2,
                 org.jboss.as.osgi.service;version=7.0,
-                org.jboss.logging;version=3.0,
-                org.jboss.osgi.deployment.deployer;version=1.0,
                 org.jboss.osgi.deployment.interceptor;version=1.0,
-                org.jboss.osgi.spi;version=1.0,
                 org.jboss.osgi.spi.capability;version=1.0,
                 org.jboss.osgi.spi.util;version=1.0,
                 org.jboss.osgi.testing;version=1.0,
                 org.jboss.osgi.vfs;version=1.0,
-
-                org.jboss.arquillian.api, org.jboss.arquillian.junit, org.jboss.arquillian.jmx, org.jboss.arquillian.osgi,
-                org.jboss.shrinkwrap.api, org.jboss.shrinkwrap.api.asset, org.jboss.shrinkwrap.api.spec,
-                org.jboss.shrinkwrap.impl.base,
-                org.junit, org.junit.runner, javax.inject
+                org.slf4j;version=1.5.10,
                 </property>
+                <!-- Specifies the beginning start level of the framework -->
+                <property name="org.osgi.framework.startlevel.beginning">1</property>
             </properties>
             <modules>
-                <module identifier="org.osgi.compendium"/>
+                <!-- modules registered with the OSGi layer on startup -->
+                <module identifier="javaee.api"/>
+                <module identifier="org.jboss.logging"/>
+                <!-- bundles installed on startup -->
                 <module identifier="org.apache.aries.util"/>
-                <module identifier="org.jboss.as.osgi.configadmin" start="true"/>
-                <module identifier="org.apache.felix.configadmin" start="true"/>
-                <module identifier="org.jboss.osgi.common" start="true"/>
-                <module identifier="org.apache.aries.jmx" start="true"/>
-                <module identifier="org.jboss.osgi.jmx" start="true"/>
+                <module identifier="org.jboss.osgi.webconsole"/>
+                <module identifier="org.osgi.compendium"/>
+                <!-- bundles started in startlevel 1 -->
+                <module identifier="org.apache.felix.log" startlevel="1"/>
+                <module identifier="org.jboss.osgi.logging" startlevel="1"/>
+                <!-- bundles started in startlevel 2 -->
+                <module identifier="org.apache.aries.jmx" startlevel="2"/>
+                <module identifier="org.apache.felix.configadmin" startlevel="2"/>
+                <module identifier="org.apache.felix.eventadmin" startlevel="2"/>
+                <module identifier="org.apache.felix.metatype" startlevel="2"/>
+                <module identifier="org.apache.felix.webconsole" startlevel="2"/>
+                <module identifier="org.jboss.as.osgi.configadmin" startlevel="2"/>
+                <module identifier="org.jboss.osgi.jmx" startlevel="2"/>
+                <module identifier="org.jboss.osgi.http" startlevel="2"/>
+                <!-- bundles started in startlevel 3 -->
+                <module identifier="org.jboss.osgi.blueprint" startlevel="3"/>
+                <module identifier="org.jboss.osgi.webapp" startlevel="3"/>
+                <module identifier="org.jboss.osgi.xerces" startlevel="3"/>
             </modules>
         </subsystem>
         <subsystem xmlns="urn:jboss:domain:messaging:1.0">
@@ -298,30 +317,44 @@
                   <address-full-policy>BLOCK</address-full-policy>
                </address-setting>
             </address-settings>
-        </subsystem>
-        <subsystem xmlns="urn:jboss:domain:messaging:jms:1.0">
-            <connection-factory name="InVmConnectionFactory">
-               <connectors>
-                  <connector-ref connector-name="in-vm" backup-connector-name="netty"/>
-               </connectors>
-               <entries>
-                  <entry name="java:/ConnectionFactory" />
-               </entries>
-            </connection-factory>
-            <connection-factory name="RemoteConnectionFactory">
-               <connectors>
-                  <connector-ref connector-name="netty" backup-connector-name="in-vm"/>
-               </connectors>
-               <entries>
-                  <entry name="RemoteConnectionFactory" />
-               </entries>
-            </connection-factory>
-            <queue name="testQueue">
-               <entry name="queue/test" />
-            </queue>
-            <topic name="testTopic">
-               <entry name="topic/test" />
-            </topic>
+
+            <!--JMS Stuff-->
+           <jms-connection-factories>
+              <connection-factory name="InVmConnectionFactory">
+                 <connectors>
+                    <connector-ref connector-name="in-vm"/>
+                 </connectors>
+                 <entries>
+                    <entry name="java:/ConnectionFactory"/>
+                 </entries>
+              </connection-factory>
+              <connection-factory name="RemoteConnectionFactory">
+                 <connectors>
+                    <connector-ref connector-name="netty"/>
+                 </connectors>
+                 <entries>
+                    <entry name="RemoteConnectionFactory"/>
+                 </entries>
+              </connection-factory>
+              <pooled-connection-factory name="hornetq-ra">
+                 <transaction mode="xa"/>
+                 <connectors>
+                    <connector-ref connector-name="in-vm"/>
+                 </connectors>
+                 <entries>
+                    <entry name="java:/JmsXA"/>
+                 </entries>
+              </pooled-connection-factory>
+           </jms-connection-factories>
+
+           <jms-destinations>
+              <jms-queue name="testQueue">
+                 <entry name="queue/test"/>
+              </jms-queue>
+              <jms-topic name="testTopic">
+                 <entry name="topic/test"/>
+              </jms-topic>
+           </jms-destinations>
         </subsystem>
         <subsystem xmlns="urn:jboss:domain:web:1.0">
             <connector name="http" scheme="http" protocol="HTTP/1.1" socket-binding="http"/>

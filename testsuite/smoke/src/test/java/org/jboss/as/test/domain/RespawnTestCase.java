@@ -21,7 +21,16 @@
  */
 package org.jboss.as.test.domain;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.List;
+
 import junit.framework.Assert;
+
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.client.ModelControllerClient;
@@ -35,15 +44,6 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.ConnectException;
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * RespawnTestCase
  *
@@ -51,7 +51,7 @@ import java.util.List;
  *
  * @author <a href="mailto:kabir.khan@jboss.com">Kabir Khan</a>
  */
-//@Ignore
+@Ignore("[AS7-814] Fix or remove ignored smoke tests")
 public class RespawnTestCase {
 
     private static final int TIMEOUT = 15000;

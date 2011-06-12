@@ -28,12 +28,13 @@ import java.util.logging.Logger;
 import javax.xml.namespace.QName;
 import javax.xml.ws.Service;
 
-import org.jboss.arquillian.api.Deployment;
+import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.as.testsuite.integration.jaxrs.servletintegration.WebXml;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -52,7 +53,7 @@ public class SimpleWebserviceEndpointTestCase {
         final WebArchive war = ShrinkWrap.create(WebArchive.class, "ws-endpoint-example.war");
         war.addPackage(SimpleWebserviceEndpointImpl.class.getPackage());
         war.addClass(SimpleWebserviceEndpointImpl.class);
-        war.addWebResource(WebXml.get("<servlet>" +
+        war.addAsWebInfResource(WebXml.get("<servlet>" +
             "    <servlet-name>TestService</servlet-name>" +
             "    <servlet-class>org.jboss.as.testsuite.integration.ws.SimpleWebserviceEndpointImpl</servlet-class>" +
             "  </servlet>" +

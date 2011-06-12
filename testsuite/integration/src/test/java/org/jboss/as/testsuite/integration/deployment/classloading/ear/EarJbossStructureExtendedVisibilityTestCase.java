@@ -21,7 +21,7 @@
  */
 package org.jboss.as.testsuite.integration.deployment.classloading.ear;
 
-import org.jboss.arquillian.api.Deployment;
+import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -33,7 +33,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 /**
- * Tests the extended-class-visibility option in jboss-structure.xml
+ * Tests the ear-subdeployments-isolated option in jboss-deployment-structure.xml
  *
  * By default ejb-jar's should not be visible to each other, with this option enabled they are.
  *
@@ -48,18 +48,18 @@ public class EarJbossStructureExtendedVisibilityTestCase {
 
         WebArchive war = ShrinkWrap.create(WebArchive.class,"test.war");
         war.addClasses(TestAA.class);
-        ear.addModule(war);
+        ear.addAsModule(war);
 
         JavaArchive ejb = ShrinkWrap.create(JavaArchive.class, "ejb1.jar");
         ejb.addClasses(MyEjb.class, EarJbossStructureExtendedVisibilityTestCase.class);
-        ear.addModule(ejb);
+        ear.addAsModule(ejb);
 
         ejb = ShrinkWrap.create(JavaArchive.class, "ejb2.jar");
         ejb.addClasses(MyEjb2.class);
-        ear.addModule(ejb);
+        ear.addAsModule(ejb);
 
-        ear.addManifestResource(new StringAsset(
-               "<jboss-deployment-structure><extended-class-visibility>true</extended-class-visibility></jboss-deployment-structure>"),
+        ear.addAsManifestResource(new StringAsset(
+               "<jboss-deployment-structure><ear-subdeployments-isolated>false</ear-subdeployments-isolated></jboss-deployment-structure>"),
                 "jboss-deployment-structure.xml");
 
         return ear;

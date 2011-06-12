@@ -21,24 +21,30 @@
  */
 package org.jboss.as.connector.subsystems.jca;
 
+import static org.jboss.as.connector.subsystems.jca.Constants.ARCHIVE_VALIDATION_ENABLED;
+import static org.jboss.as.connector.subsystems.jca.Constants.ARCHIVE_VALIDATION_FAIL_ON_ERROR;
+import static org.jboss.as.connector.subsystems.jca.Constants.ARCHIVE_VALIDATION_FAIL_ON_WARN;
+import static org.jboss.as.connector.subsystems.jca.Constants.BEAN_VALIDATION_ENABLED;
+import static org.jboss.as.connector.subsystems.jca.Constants.CACHED_CONNECTION_MANAGER_DEBUG;
+import static org.jboss.as.connector.subsystems.jca.Constants.CACHED_CONNECTION_MANAGER_ERROR;
+import static org.jboss.as.connector.subsystems.jca.Constants.JCA;
+import static org.jboss.as.connector.subsystems.jca.Constants.LONG_RUNNING_THREADS;
+import static org.jboss.as.connector.subsystems.jca.Constants.SHORT_RUNNING_THREADS;
+import static org.jboss.as.connector.subsystems.jca.Constants.THREAD_POOL;
 import static org.jboss.as.connector.subsystems.jca.JcaSubsystemProviders.SUBSYSTEM;
 import static org.jboss.as.connector.subsystems.jca.JcaSubsystemProviders.SUBSYSTEM_ADD_DESC;
 import static org.jboss.as.connector.subsystems.jca.JcaSubsystemProviders.SUBSYSTEM_REMOVE_DESC;
-import static org.jboss.as.connector.subsystems.jca.Constants.*;
-
-import org.jboss.as.controller.BasicOperationResult;
-import org.jboss.as.controller.OperationResult;
+import org.jboss.as.controller.PathElement;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DESCRIBE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.REMOVE;
-import static org.jboss.as.controller.parsing.ParseUtils.missingRequired;
 import static org.jboss.as.controller.parsing.ParseUtils.missingRequiredElement;
-import static org.jboss.as.controller.parsing.ParseUtils.readBooleanAttributeElement;
 import static org.jboss.as.controller.parsing.ParseUtils.requireNoContent;
 import static org.jboss.as.controller.parsing.ParseUtils.unexpectedAttribute;
 import static org.jboss.as.controller.parsing.ParseUtils.unexpectedElement;
+import static org.jboss.as.controller.parsing.ParseUtils.requireSingleAttribute;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -47,10 +53,12 @@ import java.util.Locale;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 
+import org.jboss.as.controller.BasicOperationResult;
 import org.jboss.as.controller.Extension;
 import org.jboss.as.controller.ExtensionContext;
 import org.jboss.as.controller.ModelQueryOperationHandler;
 import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationResult;
 import org.jboss.as.controller.ResultHandler;
 import org.jboss.as.controller.SubsystemRegistration;
 import org.jboss.as.controller.descriptions.DescriptionProvider;
@@ -61,7 +69,14 @@ import org.jboss.as.controller.parsing.ExtensionParsingContext;
 import org.jboss.as.controller.persistence.SubsystemMarshallingContext;
 import org.jboss.as.controller.registry.ModelNodeRegistration;
 import org.jboss.as.controller.registry.OperationEntry;
+import org.jboss.as.threads.BoundedQueueThreadPoolAdd;
+import org.jboss.as.threads.BoundedQueueThreadPoolRemove;
+import static org.jboss.as.threads.CommonAttributes.BOUNDED_QUEUE_THREAD_POOL;
+import static org.jboss.as.threads.ThreadsDescriptionUtil.addBoundedQueueThreadPool;
+import org.jboss.as.threads.ThreadsParser;
+import static org.jboss.as.threads.ThreadsSubsystemProviders.BOUNDED_QUEUE_THREAD_POOL_DESC;
 import org.jboss.dmr.ModelNode;
+import org.jboss.dmr.Property;
 import org.jboss.logging.Logger;
 import org.jboss.staxmapper.XMLElementReader;
 import org.jboss.staxmapper.XMLElementWriter;
@@ -74,6 +89,8 @@ import org.jboss.staxmapper.XMLExtendedStreamWriter;
  */
 public class JcaExtension implements Extension {
     private static final Logger log = Logger.getLogger("org.jboss.as.connector");
+
+    private static String SUBSYSTEM_NAME = "jca";
 
     @Override
     public void initialize(final ExtensionContext context) {
@@ -89,6 +106,11 @@ public class JcaExtension implements Extension {
         subsystem.registerOperationHandler(REMOVE, JcaSubSystemRemove.INSTANCE, SUBSYSTEM_REMOVE_DESC, false);
         subsystem.registerOperationHandler(DESCRIBE, ConnectorSubsystemDescribeHandler.INSTANCE,
                 ConnectorSubsystemDescribeHandler.INSTANCE, false, OperationEntry.EntryType.PRIVATE);
+
+
+        final ModelNodeRegistration threadPools = subsystem.registerSubModel(PathElement.pathElement(THREAD_POOL), BOUNDED_QUEUE_THREAD_POOL_DESC);
+        threadPools.registerOperationHandler(ADD, BoundedQueueThreadPoolAdd.INSTANCE, BoundedQueueThreadPoolAdd.INSTANCE, false);
+        threadPools.registerOperationHandler(REMOVE, BoundedQueueThreadPoolRemove.INSTANCE, BoundedQueueThreadPoolRemove.INSTANCE, false);
     }
 
     @Override
@@ -117,6 +139,7 @@ public class JcaExtension implements Extension {
         public void writeContent(XMLExtendedStreamWriter writer, SubsystemMarshallingContext context) throws XMLStreamException {
             context.startSubsystemElement(Namespace.CURRENT.getUriString(), false);
             ModelNode node = context.getModelNode();
+
             writeArchiveValidation(writer, node);
             writeBeanValidation(writer, node);
             writeDefaultWorkManager(writer, node);
@@ -157,17 +180,39 @@ public class JcaExtension implements Extension {
         }
 
         private void writeDefaultWorkManager(XMLExtendedStreamWriter writer, ModelNode node) throws XMLStreamException {
-            if (hasAnyOf(node, DEFAULT_WORKMANAGER_SHORT_RUNNING_THREAD_POOL, DEFAULT_WORKMANAGER_LONG_RUNNING_THREAD_POOL)) {
-                writer.writeEmptyElement(Element.DEFAULT_WORKMANAGER.getLocalName());
-                if (has(node, DEFAULT_WORKMANAGER_SHORT_RUNNING_THREAD_POOL)) {
-                    writeAttribute(writer, Attribute.SHORT_RUNNING_THREAD_POOL,
-                            node.require(DEFAULT_WORKMANAGER_SHORT_RUNNING_THREAD_POOL));
+            if (node.hasDefined(THREAD_POOL)) {
+                writer.writeStartElement(Element.DEFAULT_WORKMANAGER.getLocalName());
+                for (Property prop : node.get(THREAD_POOL).asPropertyList()) {
+                    if (LONG_RUNNING_THREADS.equals(prop.getName())) {
+                        ThreadsParser.getInstance().writeBoundedQueueThreadPool(writer, prop.getValue(), Element.LONG_RUNNING_THREADS.getLocalName(), false);
+                    }
+                    if (SHORT_RUNNING_THREADS.equals(prop.getName())) {
+                        ThreadsParser.getInstance().writeBoundedQueueThreadPool(writer, prop.getValue(), Element.SHORT_RUNNING_THREADS.getLocalName(), false);
+                    }
                 }
-                if (has(node, DEFAULT_WORKMANAGER_LONG_RUNNING_THREAD_POOL)) {
-                    writeAttribute(writer, Attribute.LONG_RUNNING_THREAD_POOL,
-                            node.require(DEFAULT_WORKMANAGER_LONG_RUNNING_THREAD_POOL));
-                }
+                writer.writeEndElement();
             }
+            // if (hasAnyOf(node, DEFAULT_WORKMANAGER_SHORT_RUNNING_THREAD_POOL,
+            // DEFAULT_WORKMANAGER_LONG_RUNNING_THREAD_POOL)) {
+            // writer.writeStartElement(Element.DEFAULT_WORKMANAGER.getLocalName());
+            // if
+            // (node.hasDefined(DEFAULT_WORKMANAGER_LONG_RUNNING_THREAD_POOL)) {
+            // writer.writeStartElement(Element.LONG_RUNNING_THREADS.getLocalName());
+            // (new NewThreadsParser()).writeThreadsElement(writer,
+            // node.get(DEFAULT_WORKMANAGER_THREADS, LONG_RUNNING_THREADS).as);
+            // writer.writeEndElement();
+            // }
+            // if
+            // (node.hasDefined(DEFAULT_WORKMANAGER_SHORT_RUNNING_THREAD_POOL))
+            // {
+            // writer.writeStartElement(Element.SHORT_RUNNING_THREADS.getLocalName());
+            // (new NewThreadsParser()).writeThreadsElement(writer,
+            // node.get(DEFAULT_WORKMANAGER_THREADS, SHORT_RUNNING_THREADS));
+            // writer.writeEndElement();
+            // }
+            //
+            // writer.writeEndElement();
+            // }
         }
 
         private boolean hasAnyOf(ModelNode node, String... names) {
@@ -191,7 +236,13 @@ public class JcaExtension implements Extension {
         @Override
         public void readElement(final XMLExtendedStreamReader reader, final List<ModelNode> list) throws XMLStreamException {
 
-            final ModelNode subsystem = createEmptyAddOperation();
+            final ModelNode address = new ModelNode();
+            address.add(org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM, JCA);
+            address.protect();
+
+            final ModelNode subsystem = new ModelNode();
+            subsystem.get(OP).set(ADD);
+            subsystem.get(OP_ADDR).set(address);
             list.add(subsystem);
 
             // Handle elements
@@ -217,7 +268,7 @@ public class JcaExtension implements Extension {
                                 break;
                             }
                             case DEFAULT_WORKMANAGER: {
-                                parseDefaultWorkManager(reader, subsystem);
+                                parseDefaultWorkManager(reader, address, list, subsystem);
                                 requiredElement.remove(Element.DEFAULT_WORKMANAGER);
                                 break;
 
@@ -270,38 +321,38 @@ public class JcaExtension implements Extension {
 
         }
 
-        private void parseDefaultWorkManager(final XMLExtendedStreamReader reader, final ModelNode node)
-                throws XMLStreamException {
+        private void parseDefaultWorkManager(final XMLExtendedStreamReader reader, final ModelNode parentAddress,
+                final List<ModelNode> list, final ModelNode node) throws XMLStreamException {
 
-            final EnumSet<Attribute> required = EnumSet.of(Attribute.SHORT_RUNNING_THREAD_POOL,
-                    Attribute.LONG_RUNNING_THREAD_POOL);
-            final int cnt = reader.getAttributeCount();
-            for (int i = 0; i < cnt; i++) {
-                final Attribute attribute = Attribute.forName(reader.getAttributeLocalName(i));
-                switch (attribute) {
-                    case SHORT_RUNNING_THREAD_POOL: {
-                        node.get(DEFAULT_WORKMANAGER_SHORT_RUNNING_THREAD_POOL).set(reader.getAttributeValue(i));
-                        required.remove(Attribute.SHORT_RUNNING_THREAD_POOL);
+            while (reader.hasNext() && reader.nextTag() != END_ELEMENT) {
+
+                final Element element = Element.forName(reader.getLocalName());
+
+                switch (element) {
+                    case LONG_RUNNING_THREADS: {
+                        ThreadsParser.getInstance().parseBoundedQueueThreadPool(reader, parentAddress, list, THREAD_POOL, LONG_RUNNING_THREADS);
                         break;
                     }
-                    case LONG_RUNNING_THREAD_POOL: {
-                        node.get(DEFAULT_WORKMANAGER_LONG_RUNNING_THREAD_POOL).set(reader.getAttributeValue(i));
-                        required.remove(Attribute.LONG_RUNNING_THREAD_POOL);
+                    case SHORT_RUNNING_THREADS: {
+                        ThreadsParser.getInstance().parseBoundedQueueThreadPool(reader, parentAddress, list, THREAD_POOL, SHORT_RUNNING_THREADS);
                         break;
                     }
+                    default:
+                        throw unexpectedElement(reader);
                 }
-            }
-            if (!required.isEmpty()) {
-                missingRequired(reader, required);
+
             }
             // Handle elements
             requireNoContent(reader);
-
         }
 
         private void parseBeanValidation(final XMLExtendedStreamReader reader, final ModelNode node) throws XMLStreamException {
-            final boolean enabled = readBooleanAttributeElement(reader, Attribute.ENABLED.getLocalName());
-            node.get(BEAN_VALIDATION_ENABLED).set(enabled);
+            requireSingleAttribute(reader, Attribute.ENABLED.getLocalName());
+            final boolean value = reader.getAttributeValue(0) != null ? Boolean.parseBoolean(reader.getAttributeValue(0))
+                    : true;
+            requireNoContent(reader);
+
+            node.get(BEAN_VALIDATION_ENABLED).set(value);
             // Don't add a requireNoContent here as readBooleanAttributeElement
             // already performs that check.
         }
@@ -327,14 +378,6 @@ public class JcaExtension implements Extension {
             final ModelNode add = createEmptyAddOperation();
             final ModelNode model = context.getSubModel();
 
-            if (model.hasDefined(DEFAULT_WORKMANAGER_SHORT_RUNNING_THREAD_POOL)) {
-                add.get(DEFAULT_WORKMANAGER_SHORT_RUNNING_THREAD_POOL).set(
-                        model.get(DEFAULT_WORKMANAGER_SHORT_RUNNING_THREAD_POOL));
-            }
-            if (model.hasDefined(DEFAULT_WORKMANAGER_LONG_RUNNING_THREAD_POOL)) {
-                add.get(DEFAULT_WORKMANAGER_LONG_RUNNING_THREAD_POOL).set(
-                        model.get(DEFAULT_WORKMANAGER_LONG_RUNNING_THREAD_POOL));
-            }
             if (model.hasDefined(BEAN_VALIDATION_ENABLED)) {
                 add.get(BEAN_VALIDATION_ENABLED).set(model.get(BEAN_VALIDATION_ENABLED));
             }
@@ -356,6 +399,17 @@ public class JcaExtension implements Extension {
 
             ModelNode result = new ModelNode();
             result.add(add);
+
+            if (model.hasDefined(THREAD_POOL)) {
+                ModelNode pools = model.get(THREAD_POOL);
+                for (Property poolProp : pools.asPropertyList()) {
+                    if (poolProp.getName().equals(LONG_RUNNING_THREADS)) {
+                        addBoundedQueueThreadPool(result, poolProp.getValue(), PathElement.pathElement(ModelDescriptionConstants.SUBSYSTEM, SUBSYSTEM_NAME), PathElement.pathElement(THREAD_POOL, LONG_RUNNING_THREADS));
+                    } else if (poolProp.getName().equals(SHORT_RUNNING_THREADS)) {
+                        addBoundedQueueThreadPool(result, poolProp.getValue(), PathElement.pathElement(ModelDescriptionConstants.SUBSYSTEM, SUBSYSTEM_NAME), PathElement.pathElement(THREAD_POOL, SHORT_RUNNING_THREADS));
+                    }
+                }
+            }
 
             resultHandler.handleResultFragment(Util.NO_LOCATION, result);
             resultHandler.handleResultComplete();

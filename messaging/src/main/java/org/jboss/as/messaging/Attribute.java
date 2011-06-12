@@ -6,7 +6,7 @@ import java.util.Map;
 /**
  *
  */
-enum Attribute {
+public enum Attribute {
    UNKNOWN(null),
    /* Messaging 1.0 attributes, in alpha order */
    CONSUME_NAME(CommonAttributes.CONSUME_NAME),
@@ -29,6 +29,9 @@ enum Attribute {
    STRING(CommonAttributes.STRING),
    TYPE_ATTR_NAME(CommonAttributes.TYPE_ATTR_NAME),
    VALUE(CommonAttributes.VALUE),
+   //JMS Stuff
+   CONNECTOR_NAME(CommonAttributes.CONNECTOR_NAME),
+   DISCOVERY_GROUP_NAME(CommonAttributes.DISCOVERY_GROUP_NAME),
    ;
    private final String name;
 

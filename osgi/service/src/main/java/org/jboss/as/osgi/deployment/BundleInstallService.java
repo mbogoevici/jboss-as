@@ -72,13 +72,13 @@ public class BundleInstallService implements Service<BundleInstallService> {
         builder.addDependency(Services.BUNDLE_MANAGER, BundleManagerService.class, service.injectedBundleManager);
         builder.addDependency(BundleStartTracker.SERVICE_NAME, BundleStartTracker.class, service.injectedStartTracker);
         builder.addDependency(deploymentUnitName(contextName));
-        builder.addDependency(Services.FRAMEWORK_ACTIVE);
+        builder.addDependency(Services.FRAMEWORK_ACTIVATOR);
         builder.install();
     }
 
-    public static void removeService(DeploymentUnit context) {
-        final ServiceName serviceName = getServiceName(context.getName());
-        final ServiceController<?> serviceController = context.getServiceRegistry().getService(serviceName);
+    public static void removeService(DeploymentUnit depUnit) {
+        final ServiceName serviceName = getServiceName(depUnit.getName());
+        final ServiceController<?> serviceController = depUnit.getServiceRegistry().getService(serviceName);
         if (serviceController != null) {
             serviceController.setMode(Mode.REMOVE);
         }
@@ -89,11 +89,9 @@ public class BundleInstallService implements Service<BundleInstallService> {
         return BundleInstallService.SERVICE_NAME_BASE.append(deploymentServiceName.getSimpleName());
     }
 
-    /**
-     * Install the Bundle associated with this deployment.
-     */
     public synchronized void start(StartContext context) throws StartException {
-        log.infof("Installing deployment: %s", deployment);
+        ServiceController<?> controller = context.getController();
+        log.debugf("Starting: %s in mode %s", controller.getName(), controller.getMode());
         try {
             ServiceTarget serviceTarget = context.getChildTarget();
             BundleManagerService bundleManager = injectedBundleManager.getValue();
@@ -104,13 +102,9 @@ public class BundleInstallService implements Service<BundleInstallService> {
         }
     }
 
-    /**
-     * Uninstall the Bundle associated with this deployment.
-     *
-     * @param context The stop context.
-     */
     public synchronized void stop(StopContext context) {
-        log.infof("Uninstalling deployment: %s", deployment);
+        ServiceController<?> controller = context.getController();
+        log.debugf("Stoppping: %s in mode %s", controller.getName(), controller.getMode());
         try {
             BundleManagerService bundleManager = injectedBundleManager.getValue();
             bundleManager.uninstallBundle(deployment);

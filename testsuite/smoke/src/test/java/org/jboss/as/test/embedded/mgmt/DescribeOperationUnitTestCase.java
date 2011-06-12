@@ -35,22 +35,19 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUB
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
 
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.Set;
 
 import junit.framework.Assert;
 
-import org.jboss.arquillian.api.Deployment;
-import org.jboss.arquillian.api.Run;
-import org.jboss.arquillian.api.RunModeType;
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.as.controller.client.ModelControllerClient;
-import org.jboss.as.protocol.StreamUtils;
 import org.jboss.as.test.modular.utils.ShrinkWrapUtils;
 import org.jboss.dmr.ModelNode;
 import org.jboss.shrinkwrap.api.Archive;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -61,7 +58,7 @@ import org.junit.runner.RunWith;
  * @author Emanuel Muckenhuber
  */
 @RunWith(Arquillian.class)
-@Run(RunModeType.AS_CLIENT)
+@RunAsClient
 public class DescribeOperationUnitTestCase {
 
     private static final Set<String> ignored = new HashSet<String>();
@@ -71,21 +68,14 @@ public class DescribeOperationUnitTestCase {
         ignored.add("deployment-scanner");
     }
 
-    private ModelControllerClient client;
-
-    @Deployment
+    @Deployment(testable = false)
     public static Archive<?> getDeployment() {
         return ShrinkWrapUtils.createEmptyJavaArchive("dummy");
     }
 
-    @Before
-    public void setUp() throws Exception {
-        this.client = ModelControllerClient.Factory.create(InetAddress.getByName("localhost"), 9999);
-    }
-
-    @After
-    public void tearDown() {
-        StreamUtils.safeClose(client);
+    // [ARQ-458] @Before not called with @RunAsClient
+    private ModelControllerClient getModelControllerClient() throws UnknownHostException {
+        return ModelControllerClient.Factory.create(InetAddress.getByName("localhost"), 9999);
     }
 
     @Test
@@ -130,7 +120,7 @@ public class DescribeOperationUnitTestCase {
     }
 
     private ModelNode executeForResult(final ModelNode operation) throws Exception {
-        final ModelNode result = client.execute(operation);
+        final ModelNode result = getModelControllerClient().execute(operation);
         checkSuccessful(result);
         return result.get(RESULT);
     }

@@ -33,7 +33,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -42,7 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import javax.management.InstanceNotFoundException;
-import javax.management.MBeanServer;
+import javax.management.MBeanServerConnection;
 import javax.management.MBeanServerDelegate;
 import javax.management.MBeanServerNotification;
 import javax.management.Notification;
@@ -51,6 +50,10 @@ import javax.management.ObjectName;
 
 import junit.framework.Assert;
 
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.container.test.api.RunAsClient;
+import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.as.arquillian.container.MBeanServerConnectionProvider;
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.client.helpers.standalone.ServerDeploymentManager;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
@@ -58,17 +61,26 @@ import org.jboss.as.protocol.StreamUtils;
 import org.jboss.as.test.modular.utils.ShrinkWrapUtils;
 import org.jboss.as.test.surefire.servermodule.archive.sar.Simple;
 import org.jboss.dmr.ModelNode;
+import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.exporter.ExplodedExporter;
 import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 /**
  * Tests deployment to a standalone server, both via the client API and by the
  * filesystem scanner.
  * @author Brian Stansberry (c) 2011 Red Hat Inc.
  */
-public class ServerInModuleDeploymentTestCase extends AbstractServerInModuleTestCase {
+@RunAsClient
+@RunWith(Arquillian.class)
+public class ServerInModuleDeploymentTestCase  {
+
+    @Deployment(testable = false)
+    public static Archive<?> getDeployment(){
+        return ShrinkWrapUtils.createEmptyJavaArchive("please-the-arquillian-gods.jar");
+    }
 
     @Test
     public void testDeploymentStreamApi() throws Exception {
@@ -82,7 +94,7 @@ public class ServerInModuleDeploymentTestCase extends AbstractServerInModuleTest
             @Override
             public void initialDeploy() {
                 Future<?> future = manager.execute(manager.newDeploymentPlan()
-                        .add("test-deployment.sar", archive.as(ZipExporter.class).exportZip()).deploy("test-deployment.sar")
+                        .add("test-deployment.sar", archive.as(ZipExporter.class).exportAsInputStream()).deploy("test-deployment.sar")
                         .build());
                 awaitDeploymentExecution(future);
             }
@@ -90,7 +102,7 @@ public class ServerInModuleDeploymentTestCase extends AbstractServerInModuleTest
             @Override
             public void fullReplace() {
                 Future<?> future = manager.execute(manager.newDeploymentPlan()
-                        .replace("test-deployment.sar", archive.as(ZipExporter.class).exportZip()).build());
+                        .replace("test-deployment.sar", archive.as(ZipExporter.class).exportAsInputStream()).build());
                 awaitDeploymentExecution(future);
             }
 
@@ -112,7 +124,7 @@ public class ServerInModuleDeploymentTestCase extends AbstractServerInModuleTest
         final File dir = new File("target/archives");
         dir.mkdirs();
         final File file = new File(dir, "test-deployment.sar");
-        archive.as(ZipExporter.class).exportZip(file, true);
+        archive.as(ZipExporter.class).exportTo(file, true);
 
         testDeployments(new DeploymentExecutor() {
 
@@ -145,7 +157,7 @@ public class ServerInModuleDeploymentTestCase extends AbstractServerInModuleTest
         final File dir = new File("target/archives");
         dir.mkdirs();
         final File file = new File(dir, "test-deployment.sar");
-        archive.as(ZipExporter.class).exportZip(file, true);
+        archive.as(ZipExporter.class).exportTo(file, true);
 
         final File deployDir = createDeploymentDir("deployments");
 
@@ -373,7 +385,8 @@ public class ServerInModuleDeploymentTestCase extends AbstractServerInModuleTest
     }
 
     private void testDeployments(DeploymentExecutor deploymentExecutor) throws Exception {
-        final MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
+        final MBeanServerConnectionProvider provider = MBeanServerConnectionProvider.defaultProvider();
+        final MBeanServerConnection mbeanServer = provider.getConnection();
         final ObjectName name = new ObjectName("jboss.test:service=testdeployments");
         final TestNotificationListener listener = new TestNotificationListener(name);
         mbeanServer.addNotificationListener(MBeanServerDelegate.DELEGATE_NAME, listener, null, null);

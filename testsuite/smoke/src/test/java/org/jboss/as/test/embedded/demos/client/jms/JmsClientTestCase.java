@@ -25,7 +25,6 @@ package org.jboss.as.test.embedded.demos.client.jms;
 import static org.jboss.as.protocol.StreamUtils.safeClose;
 
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,12 +46,12 @@ import javax.management.ObjectName;
 
 import junit.framework.Assert;
 
-import org.jboss.arquillian.api.Deployment;
-import org.jboss.arquillian.api.Run;
-import org.jboss.arquillian.api.RunModeType;
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.as.controller.client.OperationBuilder;
+import org.jboss.as.arquillian.container.MBeanServerConnectionProvider;
 import org.jboss.as.controller.client.ModelControllerClient;
+import org.jboss.as.controller.client.OperationBuilder;
 import org.jboss.as.test.embedded.demos.fakejndi.FakeJndi;
 import org.jboss.as.test.modular.utils.PollingUtils;
 import org.jboss.as.test.modular.utils.ShrinkWrapUtils;
@@ -67,12 +66,12 @@ import org.junit.runner.RunWith;
  * @author Emanuel Muckenhuber
  */
 @RunWith(Arquillian.class)
-@Run(RunModeType.AS_CLIENT)
+@RunAsClient
 public class JmsClientTestCase {
 
     private static final String QUEUE_NAME = "createdTestQueue";
 
-    @Deployment
+    @Deployment(testable = false)
     public static Archive<?> createDeployment(){
         //TODO Don't do this FakeJndi stuff once we have remote JNDI working
         return ShrinkWrapUtils.createJavaArchive("demos/fakejndi.sar", FakeJndi.class.getPackage());
@@ -82,7 +81,7 @@ public class JmsClientTestCase {
     public void testMessagingClient() throws Exception {
         QueueConnection conn = null;
         QueueSession session = null;
-        ModelControllerClient client = ModelControllerClient.Factory.create(InetAddress.getByName("localhost"), 9999);
+        ModelControllerClient client = ModelControllerClient.Factory.create(InetAddress.getByName("127.0.0.1"), 9999);
 
         boolean actionsApplied = false;
         try {
@@ -90,8 +89,8 @@ public class JmsClientTestCase {
             // Create the queue using the management API
             ModelNode op = new ModelNode();
             op.get("operation").set("add");
-            op.get("address").add("subsystem", "jms");
-            op.get("address").add("queue", QUEUE_NAME);
+            op.get("address").add("subsystem", "messaging");
+            op.get("address").add("jms-queue", QUEUE_NAME);
             op.get("entries").add(QUEUE_NAME);
             applyUpdate(op, client);
             actionsApplied = true;
@@ -153,8 +152,8 @@ public class JmsClientTestCase {
                 // Remove the queue using the management API
                 ModelNode op = new ModelNode();
                 op.get("operation").set("remove");
-                op.get("address").add("subsystem", "jms");
-                op.get("address").add("queue", QUEUE_NAME);
+                op.get("address").add("subsystem", "messaging");
+                op.get("address").add("jms-queue", QUEUE_NAME);
                 applyUpdate(op, client);
             }
             safeClose(client);
@@ -178,7 +177,8 @@ public class JmsClientTestCase {
 
     private static <T> T lookup(String name, Class<T> expected) throws Exception {
         //TODO Don't do this FakeJndi stuff once we have remote JNDI working
-        MBeanServerConnection mbeanServer = ManagementFactory.getPlatformMBeanServer();
+        MBeanServerConnectionProvider provider = MBeanServerConnectionProvider.defaultProvider();
+        MBeanServerConnection mbeanServer = provider.getConnection();
         ObjectName objectName = new ObjectName("jboss:name=test,type=fakejndi");
         PollingUtils.retryWithTimeout(10000, new PollingUtils.WaitForMBeanTask(mbeanServer, objectName));
         Object o = mbeanServer.invoke(objectName, "lookup", new Object[] {name}, new String[] {"java.lang.String"});
